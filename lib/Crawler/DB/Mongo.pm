@@ -1,8 +1,8 @@
-package Crawler::UserAgent;
+package Crawler::DB::Mongo;
 
 use Moo;
 
-extends "Mojo::UserAgent","Moo::Object";
+extends "MongoDB::MongoClient", "Moo::Object";
 
 # explicit constructor
 sub new {
@@ -11,6 +11,7 @@ sub new {
     # call Mojo::UserAgent's constructor
     my $obj = $class->SUPER::new(@_);
     return $class->meta->new_object(
+
         # pass in the constructed object
         # using the special key __INSTANCE__
         __INSTANCE__ => $obj,
@@ -34,3 +35,4 @@ __END__
 
 
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
+

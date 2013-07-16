@@ -5,6 +5,7 @@ use warnings;
 use feature ();
 use Carp ();
 use TryCatch;
+use Cwd qw(abs_path);
 
 # Only Perl 5.14+ requires it on demand
 use IO::Handle ();
@@ -36,6 +37,10 @@ sub import {
     feature->import(':5.12');
     English->import("-no_match_vars");
     TryCatch->import();
+    
+    if( abs_path(__FILE__) =~ m{(.*?anymojo-crawler).*}six ){
+        $ENV{PROJECT_PATH} = $1;
+    }
 }
 
 sub new {

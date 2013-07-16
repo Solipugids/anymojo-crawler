@@ -1,0 +1,134 @@
+---
+base_path: /Users/mooser/anymojo-crawler
+chenlinux:
+  desc: 三斗室
+  feed: http://chenlinux.com/feed.xml
+  parser:
+    base_url: http://www.chenlinux.com
+    no_extract: 0
+    category_mapping: ~
+    charset: utf8
+    target: PerlBlog
+    url_pattern: ~
+  target: PerlBlog
+hgpyh:
+  desc: 海购便宜货
+  feed: http://hgpyh.com/?feed=rss2
+  parser:
+    base_url: http://hgpyh.com
+    category_mapping:
+      优惠券: 优惠卷
+      健康养生: 护肤保健
+    charset: utf8
+    url_pattern: ~
+http://www.smzdm.com:
+  parser:
+    base_url: http://http://www.smzdm.com
+    category_mapping: {}
+    url_pattern:
+      ttt: page
+      xxx: feeder
+      yyy: archive
+      zzz: home
+log:
+  level: debug
+  path: /tmp/crawler.log
+max_process: 4
+mgpyh:
+  parser:
+    base_url: http://www.mgpyh.com/
+    category_mapping:
+      Amazon deals: Amazon
+      优惠券: 优惠卷
+      健康养生: 护肤保健
+      免费赠送: 免费赠送
+      办公用品: 办公用品
+      厨卫用品: 家具户外
+      国内优惠: 国内优惠
+      图书: 图书
+      奇葩物: 国内优惠
+      家居生活: 家具户外
+      工具用品: 办公用品
+      数码产品: 电子数码
+      晒物志: 未分类
+      服装鞋帽: 服饰鞋包
+      母婴产品: 母婴用品
+      玩具益智: 母婴用品
+      生活服务: 家具户外
+      箱包皮具手表: 手表首饰
+      经典荟萃: 未分类
+      网站公告: 未分类
+      美容化妆: 美容美颜
+      购物提示: 未分类
+      运动户外: 家具户外
+      限时抢购: 限时抢购
+      食品: 食品
+    url_pattern:
+      feed.mgpyh.com: home
+mlpyh:
+  desc: 美丽便宜货
+  feed: http://www.mlpyh.com/feed
+  parser:
+    base_url: http://www.mlpyh.com/
+    category_mapping: {}
+    url_pattern:
+      ttt: page
+      xxx: feeder
+      yyy: archive
+      zzz: home
+  target: wp_post
+mombuybuy:
+  desc: 妈妈败败
+  feed: http://www.mombuybuy.com/feed?rss=2
+  parser:
+    base_url: http://www.mombuybuy.com/
+    category_mapping:
+      优惠券: 优惠卷
+      健康养生: 护肤保健
+    charset: utf8
+    url_pattern: ~
+mtyhd:
+  desc: 每天优惠多
+  feed: http://www.mtyhd.com/feed
+  parser:
+    base_url: http://www.mtyhd.com
+    category_mapping: 
+  target: wp_post
+t66y.com:
+  charset: gb2312
+  parser:
+    base_url: http://t66y.com
+    category_mapping: {}
+    url_pattern:
+      t66y.com.*?fid=\d+$: feeder
+      t66y.com.*?page=\d+$: page
+      t66y.com/htm_data.*?.html$: archive
+      t66y.com/index.php: home
+  proxy: http://sri:secret@127.0.0.1:8087
+target: wp_post
+task_db:
+  dsn: DBI:mysql:dbname=crawler;host=127.0.0.1
+  option:
+    mysql_enable_utf8: 1
+  passwd: ''
+  user: root
+tz100:
+  desc: 淘者100
+  feed: http://www.tz100.com/feed/
+  parser:
+    base_url: http://www.tz100.com/
+    category_mapping:
+      优惠券: 优惠卷
+      健康养生: 护肤保健
+    charset: utf8
+    url_pattern:
+      feed.mgpyh.com: home
+www.smzdm.com:
+  parser:
+    base_url: http://www.smzdm.com
+    category_mapping: {}
+    url_pattern:
+      ttt: page
+      xxx: feeder
+      yyy: archive
+      zzz: home

@@ -1,0 +1,4 @@
+% my( $img,$source,$post_content,$url,$author ) = @_;
+<button><a href="<%= $url %>">阅读原文</a></button>
+<%= $post_content %>
+<br>

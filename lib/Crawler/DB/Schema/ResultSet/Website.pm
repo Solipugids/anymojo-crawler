@@ -14,6 +14,10 @@ sub by_type {
     return shift->find( { type => pop } );
 }
 
+sub by_url{
+    return shift->find({url => pop});
+}
+
 1;
 
 __END__

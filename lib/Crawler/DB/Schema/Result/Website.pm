@@ -41,14 +41,28 @@ __PACKAGE__->table("website");
 
 =head2 type
 
-  data_type: 'integer'
+  data_type: 'varchar'
   is_nullable: 1
+  size: 11
 
 =head2 region
 
   data_type: 'varchar'
   is_nullable: 1
   size: 11
+
+=head2 url
+
+  data_type: 'varchar'
+  default_value: (empty string)
+  is_nullable: 0
+  size: 255
+
+=head2 desc
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 32
 
 =cut
 
@@ -63,9 +77,13 @@ __PACKAGE__->add_columns(
   "name",
   { data_type => "varchar", is_nullable => 1, size => 11 },
   "type",
-  { data_type => "integer", is_nullable => 1 },
+  { data_type => "varchar", is_nullable => 1, size => 11 },
   "region",
   { data_type => "varchar", is_nullable => 1, size => 11 },
+  "url",
+  { data_type => "varchar", default_value => "", is_nullable => 0, size => 255 },
+  "desc",
+  { data_type => "varchar", is_nullable => 1, size => 32 },
 );
 
 =head1 PRIMARY KEY
@@ -81,8 +99,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("id");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-05-12 17:43:03
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:VGynSA1Uit3kHYrxKgA32w
+# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-06-01 17:41:41
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:pnr4GKJwZ70xdnOu3dugQw
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

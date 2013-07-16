@@ -1,0 +1,4 @@
+% my( $img,$source,$price,$buylink,$post_content,$url ) = @_;
+<button><a href="<%= $url %>">阅读原文</a></button>
+<%= $post_content %>
+<br>

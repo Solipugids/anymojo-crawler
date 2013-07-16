@@ -19,6 +19,11 @@ sub new {
     );
 }
 
+sub sava_archive{
+    my ($self,$data) = @_;
+}
+
+
 1;
 
 __END__

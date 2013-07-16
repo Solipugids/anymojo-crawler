@@ -61,7 +61,7 @@ __PACKAGE__->table("task");
 
   data_type: 'varchar'
   is_nullable: 1
-  size: 11
+  size: 255
 
 =head2 status
 
@@ -102,7 +102,7 @@ __PACKAGE__->add_columns(
   "retry_times",
   { data_type => "integer", is_nullable => 1 },
   "invoke_cmd",
-  { data_type => "varchar", is_nullable => 1, size => 11 },
+  { data_type => "varchar", is_nullable => 1, size => 255 },
   "status",
   { data_type => "varchar", default_value => "", is_nullable => 0, size => 11 },
   "site_id",
@@ -122,8 +122,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("id");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-05-12 17:43:03
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:gQwaTwtWDjtZne+MSfeEew
+# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-06-01 17:41:41
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:IERJHTyT7euGp5eRSwHfYw
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

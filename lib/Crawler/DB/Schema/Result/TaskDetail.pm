@@ -26,11 +26,12 @@ __PACKAGE__->table("task_detail");
 
 =head1 ACCESSORS
 
-=head2 id
+=head2 url_md5
 
-  data_type: 'integer'
-  extra: {unsigned => 1}
+  data_type: 'varchar'
+  default_value: (empty string)
   is_nullable: 0
+  size: 32
 
 =head2 url
 
@@ -39,39 +40,37 @@ __PACKAGE__->table("task_detail");
   is_nullable: 0
   size: 255
 
-=head2 url_md5
+=head2 id
 
-  data_type: 'varchar'
-  default_value: (empty string)
+  data_type: 'integer'
   is_nullable: 0
-  size: 32
 
 =cut
 
 __PACKAGE__->add_columns(
-  "id",
-  { data_type => "integer", extra => { unsigned => 1 }, is_nullable => 0 },
-  "url",
-  { data_type => "varchar", default_value => "", is_nullable => 0, size => 255 },
   "url_md5",
   { data_type => "varchar", default_value => "", is_nullable => 0, size => 32 },
+  "url",
+  { data_type => "varchar", default_value => "", is_nullable => 0, size => 255 },
+  "id",
+  { data_type => "integer", is_nullable => 0 },
 );
 
 =head1 PRIMARY KEY
 
 =over 4
 
-=item * L</id>
+=item * L</url_md5>
 
 =back
 
 =cut
 
-__PACKAGE__->set_primary_key("id");
+__PACKAGE__->set_primary_key("url_md5");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-05-12 17:43:03
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:40IabM0TLjKL1QhMJ7TtsQ
+# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-05-28 17:38:30
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:x3jcXbnzM5mdrelluuB5qw
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

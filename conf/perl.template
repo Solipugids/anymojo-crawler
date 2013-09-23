@@ -1,4 +1,7 @@
 % my( $img,$source,$post_content,$url,$author ) = @_;
-<button><a href="<%= $url %>">阅读原文</a></button>
+<span class="label label-info hidden-sm"> 作者：<a href="<%= $source %>" title="由 perl-china 发布" rel="author"><%= $author%></a></span>
+<a href="http://weibo.com/u/1560942953?s=6uyXnP" target="_blank">
+<span class="label label-info hidden-sm"> 原文链接：<a href="<%= $url %>" title="由 perl-china 发布" rel="author"><%= $url %></a></span>
 <%= $post_content %>
 <br>
+

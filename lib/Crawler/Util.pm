@@ -71,6 +71,7 @@ sub tidy_code {
         }
         if( $stderr_string ){
             print "stderr_string ".$stderr_string."\n";
+            return $source_string;
         }
     }
     print("dest string :".$dest_string);

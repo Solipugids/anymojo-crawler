@@ -1,16 +1,41 @@
 ---
 base_path: /Users/mooser/anymojo-crawler
+php-oa:
+  desc: fukai
+  feed: http://www.php-oa.com/feed?rss=2
+  parser:
+    base_url: http://www.php-oa.com
+    uid: 5628427287
+    no_extract: 0
+    category_mapping: ~
+    charset: utf8
+    author: 扶凯
+    target: PerlBlog
+    url_pattern: ~
+  target: PerlBlog
 chenlinux:
   desc: 三斗室
   feed: http://chenlinux.com/feed.xml
   parser:
-    base_url: http://www.chenlinux.com
+    base_url: http://chenlinux.com
+    uid: 5628427287
     no_extract: 0
     category_mapping: ~
     charset: utf8
+    author: 年年风雨
     target: PerlBlog
     url_pattern: ~
   target: PerlBlog
+music.baidu:
+  desc: 百度音乐
+  base_url: http://music.baidu.com
+  parser:
+    base_url: http://http://www.smzdm.com
+    category_mapping: {}
+    url_pattern:
+      feed: .*music.baidu.com/artist 
+      page: .*music.baidu.com/artist/\d+$
+      archive: .*music.baidu.com/song/\d+$
 hgpyh:
   desc: 海购便宜货
   feed: http://hgpyh.com/?feed=rss2

@@ -1,15 +1,15 @@
 package Crawler::Logging;
 
 use Crawler::Base -strict;
-use Mojo::Log;
 use Moo::Role;
+use Crawler::Logging::Logger;
 use ENV;
 use YAML qw(Dump);
 
 has log => (
     is      => 'rw',
     default => sub {
-        my $log = Mojo::Log->new();
+        my $log = Crawler::Logging::Logger->new();
         $log->path( $ENV{CRAWLER_LOG_PATH});
         $log->level( $ENV{CRAWLER_LOG_LEVEL} || 'debug' );
         return $log;

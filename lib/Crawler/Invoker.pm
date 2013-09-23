@@ -14,7 +14,7 @@ use Crawler;
 with 'Crawler::Logging';
 
 sub MAX_PROCESS() { 4 }
-sub TIME_OUT()    { 60 }
+sub TIME_OUT()    { 300 }
 
 has conf => (
     is => 'rw',
@@ -77,7 +77,6 @@ sub start {
                 'bin', $site_name, 'crawler.pl' );
             my $cmd =
               "/usr/bin/perl $crawler_path -task_id $task_id -site $site_name";
-
             $row->invoke_cmd($cmd);
             $row->status('fail') unless $self->execute_task($cmd);
             $row->update;
@@ -133,8 +132,8 @@ sub execute_task {
             local $SIG{ALRM} = sub { die "timeout" };
             alarm( $self->conf->{timeout} || TIME_OUT );
             exec($cmd);
+            alarm(0);
         };
-        alarm(0);
         if ($@) {
             $ret = 0;
         }

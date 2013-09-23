@@ -40,6 +40,7 @@ has parser_option => ( is => 'rw', default => sub { {} }, lazy => 1 );
 has scan_stop_time  => ( is => 'ro', default => sub { undef } );
 has scan_start_time => ( is => 'ro', default => sub { undef } );
 has debug           => ( is => 'ro', default => 0 );
+has sample          => ( is => 'rw' );
 has parser =>
   ( is => 'rw', default => sub { Crawler::Parser->new(); }, lazy => 1 );
 has user_agent =>
@@ -255,11 +256,10 @@ sub save_data {
 
 sub process_rss_download {
     my ( $self, $rss_url ) = @_;
-    my $parsed_result = {};
+    my $parsed_result = $self->parsed_result;
     my $html;
 
     my $target;
-    $self->log->debug( Dump( $self->parser->conf ) );
     $target = $self->parser->conf->{target} || 'WpPost';
     $parsed_result->{$target} = [];
     my $tx = $self->user_agent->get($rss_url);
@@ -271,7 +271,6 @@ sub process_rss_download {
         }
     }
     else {
-        $self->log->error("get rss url : $rss_url failed!");
         Carp::croak("Download rss url => $rss_url failed!");
     }
 
@@ -287,21 +286,18 @@ sub process_rss_download {
         },
     );
     return $parsed_result if $self->parser->conf->{no_extract};
-
     my $index = 0;
-
-    # todo dynamic value
     my $items;
     if ( $self->is_debug ) {
-        $items = Mojo::Collection->new( $parsed_result->{$target}->[0] );
+        $items = Mojo::Collection->new( { url => $self->sample }
+              || $parsed_result->{$target}->[0] );
     }
     else {
         $items =
           Mojo::Collection->new( @{ $parsed_result->{$target} } )->shuffle;
     }
-    my $cv = AnyEvent->condvar;
     for my $item ( $items->each ) {
-        $cv->begin;
+        $self->crawl_cv->begin;
         $self->user_agent->get(
             $item->{url} => sub {
                 my ( $ua, $tx ) = @_;
@@ -331,12 +327,11 @@ sub process_rss_download {
                     $self->log->error(
                         "Download item => " . $item->{url} . "  failed" );
                 }
-                $cv->end;
+                $self->crawl_cv->end;
             }
         );
     }
-
-    $cv->recv;
+    $self->crawl_cv->recv;
     return $parsed_result;
 }
 

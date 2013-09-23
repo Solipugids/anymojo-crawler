@@ -120,6 +120,17 @@ __PACKAGE__->table("perl_blog");
   is_nullable: 1
   size: 255
 
+=head2 author
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 20
+
+=head2 uid
+
+  data_type: 'integer'
+  is_nullable: 1
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -159,6 +170,10 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "source_name",
   { accessor => undef, data_type => "varchar", is_nullable => 1, size => 255 },
+  "author",
+  { data_type => "varchar", is_nullable => 1, size => 20 },
+  "uid",
+  { data_type => "integer", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -174,8 +189,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("md5");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-07-05 10:16:03
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:JUwk9XXc/QM2C+FUfMAKWA
+# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-07-28 13:34:37
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:+mbfPETbQ1zz4VuS+9wBaw
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

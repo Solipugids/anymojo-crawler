@@ -40,7 +40,7 @@ my $w  = AnyEvent->timer(
         );
 
         while ( my $row = $rs->next ) {
-            next if $row->md5;
+            next if not $row->md5;
             my $p = $row->post_content;
             $p =~ s{\<\!\[CDATA\[}{}g;
             $p =~ s{\]\]\>}{}g;

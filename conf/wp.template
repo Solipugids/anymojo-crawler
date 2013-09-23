@@ -1,4 +1,9 @@
 % my( $img,$source,$price,$buylink,$post_content,$url ) = @_;
-<button><a href="<%= $url %>">阅读原文</a></button>
+<span class="label label-info hidden-sm">
+作者：<a href="http://localhost/wordpress/?author=1" title="由 perl-china 发布" rel="author">舌尖上的牛氓</a></span>
+<br>
+<a href="http://weibo.com/u/1560942953?s=6uyXnP" target="_blank"><img border="0" src="http://service.t.sina.com.cn/widget/qmd/1560942953/624116a0/1.png">
+<br><a class="btn btn-tiny btn-info" href="http://localhost/wordpress/?page_id=2">阅读原文</a></a>
+<br>
 <%= $post_content %>
 <br>

@@ -8,7 +8,6 @@ use Encode qw(decode_utf8 encode_utf8);
 
 sub rss_parser {
     my ( $parser, $dom, $parsed_result, $attr ) = @_;
-    my $collection = pop;
 
     if ( not exists $parsed_result->{WpPost} ) {
         $parsed_result->{WpPost} = [];
@@ -24,7 +23,11 @@ sub rss_parser {
             $data->{category} = $item->category;
         }
         # regex too long ,so split
-        if($item->title =~ m/(￥[\d\.]+)/ ){
+        # ￥500
+        if($item->title =~ m/(￥\s*[\d\.]+)/ ){
+            $data->{price} = $1;
+        }
+        if($item->title =~ m/(\$\s*[\d\.]+)/ ){
             $data->{price} = $1;
         }
         else {
@@ -33,16 +36,12 @@ sub rss_parser {
         $data->{post_date} =
           Crawler::Util::format_rss_time( $item->{pubdate} );
         $data->{post_content} = $item->content;
-        push @{$collection}, { url => $item->link };
-
         # <a href="http://www.mgpyh.com/25545-2/82360" target="_blank">
         push @{ $parsed_result->{WpPost} }, $data;
-        push @{$collection}, { url => $item->link };
     }
     $parser->log->debug("parsed result below");
     $parser->dump($parsed_result);
-
-    return Mojo::Collection->new( @{ $parsed_result->{WpPost} } );
+    1;
 }
 
 sub web_parser {

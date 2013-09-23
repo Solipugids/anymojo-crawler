@@ -90,7 +90,7 @@ for my $site ( split( ',', $site_list ) ) {
             },
         },
     };
-    $conf_hashref->{$site} = $parser_option;
+    $conf_hashref->{$site} = $parser_option if not exists $conf_hashref->{$site};
     $log->debug( "Add parser option to crawler.yaml:" . Dump($parser_option) );
     DumpFile( $config, $conf_hashref );
     $schema->resultset('Home')->find_or_create(

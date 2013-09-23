@@ -23,7 +23,8 @@ sub rss_parser {
         $data->{url}         = $item->at('link')->{href} . "/";
         $data->{source_name} = $parser->conf->{name};
         $data->{title}       = $item->at('title')->text;
-        $data->{source}      = $attr->{base_url};
+        $data->{source}      = $parser->conf->{base_url};
+        $data->{author} = $parser->conf->{author};
         my $category;
         $category = $item->at('category')->text;
         my $tag_string = $category . $item->at('tags');
@@ -41,43 +42,15 @@ sub rss_parser {
         $data->{post_date} =
           Crawler::Util::format_rss_time( $item->at('updated')->text );
         $data->{md5} = md5_hex( $data->{url} );
-
-        #$data->{content} = html_unescape( $item->at('content')->content_xml );
-
-        # process code tidy
-
-=pod
-        if ( my $node = $code_dom->at('div.highlight') ) {
-            for my $div ( $code_dom->find('div.highlight')->each ) {
-                if ( $div->at('span.c1') ) {
-                    for my $e ( $div->find('span.c1')->each ) {
-                        my $comment = $e->content_xml . "\r\n";
-                        $e->replace($comment);
-                    }
-                }
-                $parser->log->debug($div);
-                my $tree = HTML::TreeBuilder->new;
-                $tree->parse($div);
-                my $tidy_code =
-                  Crawler::Util::tidy_code( $tree->as_text,
-                    $code_dom->at('code')->{"class"} );
-                #<pre class="brush:perl"
-                $div->replace_content( '<pre class="brush:perl">' . $tidy_code . '</pre>' );
-                $parser->log->debug( "after tidy div" . $div );
-            }
-        }
-=cut
-
-        $data->{content} = html_unescape($item->at('content')->text);
+        $data->{content} = html_unescape( $item->at('content')->text );
         push @{ $parsed_result->{$target} }, $data;
     }
-    #return Mojo::Collection->new( @{ $parsed_result->{WpPost} } );
 }
 
 sub web_parser {
     my ( $parser, $dom, $parsed_result, $attr ) = @_;
-
-    my $rss_dom        = Mojo::DOM->new( $parsed_result->{content} );
+    my $rss_dom = Mojo::DOM->new();
+    $rss_dom->parse( html_unescape( decode_utf8($parsed_result->{content} )) );
     my $tree           = HTML::TreeBuilder->new();
     my $dom_collection = $dom->find('div.highlight');
     my $rss_collection = $rss_dom->find('div.highlight');
@@ -85,16 +58,22 @@ sub web_parser {
     return if not scalar(@$dom_collection);
 
     for ( my $i = 0 ; $i < @$rss_collection ; $i++ ) {
-        $tree->parse( decode_utf8($dom_collection->[$i] ));
+        $tree->parse(  decode_utf8($dom_collection->[$i]  ));
         my $raw_code = $tree->as_text;
-        my $lang     = $rss_collection->[$i]->at('code')->{"class"};
-        say "get his lang is ".$lang;
-        $rss_collection->[$i]
-          ->replace_content( b('<pre class="brush:' . $lang . '">' . $raw_code . '</pre>' ));
-          #$parser->log->debug("after replace code div:".$rss_collection->[$i]);
-        say encode_utf8("after replace code div:".$rss_collection->[$i]);
+        my $lang = $rss_collection->[$i]->at('code')->{"class"};
+        if ( $lang =~ m{perl}six || $raw_code =~ m/\bsub\b/six ) {
+            eval { $raw_code = Crawler::Util::tidy_code( $raw_code, $lang ) };
+        }
+        $lang='perl';
+        $rss_collection->[$i]->replace_content( '<pre class="brush:'
+              . $lang . '">'
+              . xml_escape($raw_code)
+              . '</pre>' );
+
+        #$parser->log->debug("after replace code div:".$rss_collection->[$i]);
     }
     $parsed_result->{content} = $rss_dom;
+    $parser->log->dumper($parsed_result);
     return 1;
 }
 

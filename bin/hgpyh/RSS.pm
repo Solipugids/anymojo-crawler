@@ -9,11 +9,7 @@ use utf8;
 
 sub rss_parser {
     my ( $parser, $dom, $parsed_result, $attr ) = @_;
-    my $collection = pop;
 
-    if ( not exists $parsed_result->{WpPost} ) {
-        $parsed_result->{WpPost} = [];
-    }
     my $html = $attr->{html};
     for my $item ( $parser->rss->parse($html)->each ) {
         my $data = {};
@@ -42,16 +38,14 @@ sub rss_parser {
         $data->{post_date} =
           Crawler::Util::format_rss_time( $item->{pubdate} );
         $data->{post_content} = $item->content;
-        push @{$collection}, { url => $item->link };
 
         # <a href="http://www.mgpyh.com/25545-2/82360" target="_blank">
         push @{ $parsed_result->{WpPost} }, $data;
-        push @{$collection}, { url => $item->link };
     }
     $parser->log->debug("parsed result below");
     $parser->dump($parsed_result);
 
-    return Mojo::Collection->new( @{ $parsed_result->{WpPost} } );
+    1; 
 }
 
 sub web_parser {

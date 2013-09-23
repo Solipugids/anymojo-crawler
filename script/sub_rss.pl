@@ -11,14 +11,16 @@ EOF
 
 my $conf;
 my $site;
+my $sample;
 my $debug;
 my $feed;
 
 GetOptions(
     "conf|c=s"  => \$conf,
     "site|s=s"  => \$site,
-    "debug|d=s" => \$debug,
+    "debug|d" => \$debug,
     "feed|s=s"  => \$feed,
+    "sample|s=s" =>\$sample,
 ) or die $usage;
 
 die $usage if not $site;
@@ -30,9 +32,10 @@ $c->crawler->is_debug(1) if $debug;
 #$schema->storage->debugfh(IO::File->new('/tmp/trace.out', 'w');
 if ($debug) {
     $c->crawler->schema->storage->debug(1);
+    $c->crawler->sample($sample);
+#    $ENV{CRAWLER_LOG_PATH} = '/tmp/crawler.log' ;
 }
 
-$ENV{CRAWLER_LOG_PATH} = '/tmp/crawler.log' if $debug;
 my $data = $c->analyse_rss($feed);
 $c->crawler->save_data($data) if not $debug;
 

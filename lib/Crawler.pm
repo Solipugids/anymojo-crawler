@@ -180,7 +180,6 @@ sub run {
                 };
             }
             $cv->recv;
-            $pm->finish if not $self->is_debug;
 
         #$loop->wait if ( not Mojo::IOLoop->is_running and not $self->is_debug);
         #undef $loop;

@@ -1,12 +1,12 @@
 use utf8;
-package Crawler::DB::Schema::Result::Home;
+package Crawler::DB::Schema::Result::Artist;
 
 # Created by DBIx::Class::Schema::Loader
 # DO NOT MODIFY THE FIRST PART OF THIS FILE
 
 =head1 NAME
 
-Crawler::DB::Schema::Result::Home
+Crawler::DB::Schema::Result::Artist
 
 =cut
 
@@ -18,11 +18,11 @@ use MooseX::NonMoose;
 use MooseX::MarkAsMethods autoclean => 1;
 extends 'DBIx::Class::Core';
 
-=head1 TABLE: C<home>
+=head1 TABLE: C<artist>
 
 =cut
 
-__PACKAGE__->table("home");
+__PACKAGE__->table("artist");
 
 =head1 ACCESSORS
 
@@ -35,22 +35,26 @@ __PACKAGE__->table("home");
 
 =head2 url
 
-  data_type: 'varchar'
-  default_value: (empty string)
+  data_type: 'text'
   is_nullable: 0
-  size: 255
 
 =head2 status
 
   data_type: 'varchar'
-  default_value: (empty string)
-  is_nullable: 0
+  default_value: 'undo'
+  is_nullable: 1
+  size: 20
+
+=head2 name
+
+  data_type: 'varchar'
+  is_nullable: 1
   size: 20
 
 =head2 website_id
 
   data_type: 'integer'
-  is_nullable: 1
+  is_nullable: 0
 
 =head2 category
 
@@ -64,11 +68,18 @@ __PACKAGE__->add_columns(
   "url_md5",
   { data_type => "varchar", default_value => "", is_nullable => 0, size => 32 },
   "url",
-  { data_type => "varchar", default_value => "", is_nullable => 0, size => 255 },
+  { data_type => "text", is_nullable => 0 },
   "status",
-  { data_type => "varchar", default_value => "", is_nullable => 0, size => 20 },
+  {
+    data_type => "varchar",
+    default_value => "undo",
+    is_nullable => 1,
+    size => 20,
+  },
+  "name",
+  { data_type => "varchar", is_nullable => 1, size => 20 },
   "website_id",
-  { data_type => "integer", is_nullable => 1 },
+  { data_type => "integer", is_nullable => 0 },
   "category",
   { data_type => "varchar", is_nullable => 1, size => 32 },
 );
@@ -86,8 +97,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("url_md5");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-09-27 23:55:45
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:MDDMKm8ETcGk5fgPkzedYg
+# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-09-27 23:57:37
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:YQDJZVe/lelV8wHvvE41LA
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

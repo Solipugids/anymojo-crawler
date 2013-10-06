@@ -1,12 +1,12 @@
 use utf8;
-package Crawler::DB::Schema::Result::Song;
+package Crawler::DB::Schema::Result::Xiage;
 
 # Created by DBIx::Class::Schema::Loader
 # DO NOT MODIFY THE FIRST PART OF THIS FILE
 
 =head1 NAME
 
-Crawler::DB::Schema::Result::Song
+Crawler::DB::Schema::Result::Xiage
 
 =cut
 
@@ -18,11 +18,11 @@ use MooseX::NonMoose;
 use MooseX::MarkAsMethods autoclean => 1;
 extends 'DBIx::Class::Core';
 
-=head1 TABLE: C<song>
+=head1 TABLE: C<xiage>
 
 =cut
 
-__PACKAGE__->table("song");
+__PACKAGE__->table("xiage");
 
 =head1 ACCESSORS
 
@@ -90,17 +90,16 @@ __PACKAGE__->table("song");
   data_type: 'integer'
   is_nullable: 1
 
-=head2 page_id
+=head2 album_id
 
   data_type: 'varchar'
   is_nullable: 1
   size: 32
 
-=head2 artist_id
+=head2 size
 
-  data_type: 'varchar'
+  data_type: 'integer'
   is_nullable: 1
-  size: 32
 
 =cut
 
@@ -132,10 +131,10 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "hot_num",
   { data_type => "integer", is_nullable => 1 },
-  "page_id",
+  "album_id",
   { data_type => "varchar", is_nullable => 1, size => 32 },
-  "artist_id",
-  { data_type => "varchar", is_nullable => 1, size => 32 },
+  "size",
+  { data_type => "integer", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -151,8 +150,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("url_md5");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-09-29 22:31:17
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:UdGHSGXQFxNAV6ab9uTNmQ
+# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-10-03 15:09:55
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:NELaeTUiPczFGSLeEAfwDg
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

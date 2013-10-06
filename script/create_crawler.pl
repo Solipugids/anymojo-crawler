@@ -81,16 +81,16 @@ for my $site ( split( ',', $site_list ) ) {
     my $parser_option = {
         parser => {
             base_url         => 'http://' . $site,
+            target_path => File::Spec->catfile($ENV{PROJECT_PATH},'data',$site),
             category_mapping => {},
             url_pattern      => {
-                xxx => 'feeder',
-                yyy => 'archive',
-                zzz => 'home',
-                ttt => 'page',
+              home => $site,
+              page => $site,
             },
         },
     };
     $conf_hashref->{$site} = $parser_option if not exists $conf_hashref->{$site};
+    $conf_hashref->{$site}->{base_url} = 'http://'.$site;
     $log->debug( "Add parser option to crawler.yaml:" . Dump($parser_option) );
     DumpFile( $config, $conf_hashref );
     $schema->resultset('Home')->find_or_create(
@@ -126,9 +126,10 @@ my $site = '<%= $site %>';
 my $base_url = '<%= $base_url %>';
 
 GetOptions(
-    'task_id=s' => \$task_id,    # numeric task_id
-    'site=s'    => \$site,
-    'conf=s'    => \$config,
+    'task_id|t=s' => \$task_id,    # numeric task_id
+    'site|s=s'  => \$site,
+    'conf|c=s'    => \$config,
+    'debug|d'   => \$debug,
 ) or die("Get command args Error!!!");
 
 unless ($task_id) {
@@ -140,28 +141,40 @@ my $c = Crawler->new(
     site => $site,
 );
 
+$c->schema->storage->debug(1) if $debug;
+$c->is_debug(1) if $debug;
+$c->log->path("/tmp/${site_list}.log");
+$c->log->level('info');
+
 $c->register_parser(
     home => sub {
         my ( $parser, $dom, $parsed_result, $attr ) = @_;
-
+    
+        eval{
+        };
         return 0 if @{ $parsed_result->{feeder} } == 0;
         return 1;
     },
     feeder => sub {
         my ( $parser, $dom, $parsed_result, $attr ) = @_;
 
+        eval{
+        };
         return 0 if @{ $parsed_result->{page} } == 0;
         return 1;
     },
     page => sub {
         my ( $parser, $dom, $parsed_result, $attr ) = @_;
+        eval{
+        };
 
         return 0 if @{ $parsed_result->{archive} } == 0;
         return 1;
     },
     archive => sub {
         my ( $parser, $dom, $parsed_result, $attr ) = @_;
-
+        eval{
+        };
         return 1;
     }
 );

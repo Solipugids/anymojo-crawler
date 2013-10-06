@@ -9,7 +9,7 @@
     chomp($cpanm_path);
     my $usage =<<EOF;
     $0 /usr/sbin/cpanm
-    EOF
+EOF
 
     if( not $cpanm_path ){
         die "please defined you cpanm_path\n please input as the example: $usage";
@@ -40,7 +40,6 @@
        LWP
        List::Util
        Mojolicious
-       MongoDB
        Moo
        MooseX::MarkAsMethods
        Moose
@@ -53,6 +52,13 @@
        WordPress::XMLRPC
        YAML
        namespace::clean
+       File::Temp
+       AnyEvent::MultiDownload;
+       AnyEvent::Curl::Multi
+       LWP
+       List::Util
+       Parallel::ForkManager
+       MP3::Tag
     );
 
     my $pre = "$cpanm_path";

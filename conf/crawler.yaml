@@ -1,41 +1,18 @@
 ---
 base_path: /Users/mooser/anymojo-crawler
-php-oa:
-  desc: fukai
-  feed: http://www.php-oa.com/feed?rss=2
-  parser:
-    base_url: http://www.php-oa.com
-    uid: 5628427287
-    no_extract: 0
-    category_mapping: ~
-    charset: utf8
-    author: 扶凯
-    target: PerlBlog
-    url_pattern: ~
-  target: PerlBlog
 chenlinux:
   desc: 三斗室
   feed: http://chenlinux.com/feed.xml
   parser:
+    author: 年年风雨
     base_url: http://chenlinux.com
-    uid: 5628427287
-    no_extract: 0
     category_mapping: ~
     charset: utf8
-    author: 年年风雨
+    no_extract: 0
     target: PerlBlog
+    uid: 5628427287
     url_pattern: ~
   target: PerlBlog
-music.baidu:
-  desc: 百度音乐
-  base_url: http://music.baidu.com
-  parser:
-    base_url: http://http://www.smzdm.com
-    category_mapping: {}
-    url_pattern:
-      feed: .*music.baidu.com/artist 
-      page: .*music.baidu.com/artist/\d+$
-      archive: .*music.baidu.com/song/\d+$
 hgpyh:
   desc: 海购便宜货
   feed: http://hgpyh.com/?feed=rss2
@@ -117,8 +94,34 @@ mtyhd:
   feed: http://www.mtyhd.com/feed
   parser:
     base_url: http://www.mtyhd.com
-    category_mapping: 
+    category_mapping: ~
   target: wp_post
+music.baidu:
+  base_url: http://music.baidu.com
+  desc: 百度音乐
+  proxy: 1
+  parser:
+    base_url: http://music.baidu.com
+    category_mapping: {}
+    music_path: /tmp/baidu.com
+    url_pattern:
+      artist: .*music.baidu.com/artist/\d+$
+      home: .*music.baidu.com/artist/.+?/\w+
+      page: (?:.*music.baidu.com/artist/\d+$)|(?:getsong)
+      song: .*music.baidu.com/song/\d+$
+php-oa:
+  desc: fukai
+  feed: http://www.php-oa.com/feed?rss=2
+  parser:
+    author: 扶凯
+    base_url: http://www.php-oa.com
+    category_mapping: ~
+    charset: utf8
+    no_extract: 0
+    target: PerlBlog
+    uid: 5628427287
+    url_pattern: ~
+  target: PerlBlog
 t66y.com:
   charset: gb2312
   parser:
@@ -157,3 +160,20 @@ www.smzdm.com:
       xxx: feeder
       yyy: archive
       zzz: home
+xiami.com:
+  base_url: http://xiami.com
+  plugin: Crawler::Plugin::Xiami,Crawler::Plugin::Downloader,Crawler::Plugin::MP3Tag
+  music_path: /Users/mooser/Music/xiami
+  ready_path: /Users/mooser/Music/mp3tag
+  parser:
+    charset: UTF-8
+    base_url: http://xiami.com
+    category_mapping: {}
+    url_pattern:
+      home: .*?/artist/index$
+      feeder: .*?/+artist/+index/+c/+\d+/+type/+\d+/+class/+\d+$
+      artist_page: .*?/+artist/+index/+c/+\d+/+type/+\d+/+class/+\d+/+page/+\d+$
+      album_index: xiami.com/artist/album/id/\d+$
+      album_page: (xiami.com(/+)artist(/+)album(/+)id(/+)\d+(/+)d/+p/+page/+\d+$)|(/app/iphone/artist-albums\?id=\d+&page=\d+)
+      album: (xiami.com/+album/+\d+$)|(xiami.com/app/iphone/album\?id=\d+)
+      xiage: xiami.com/+song/+\d+$

@@ -56,6 +56,12 @@ __PACKAGE__->table("feeder");
   is_nullable: 1
   size: 11
 
+=head2 category
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 20
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -69,6 +75,8 @@ __PACKAGE__->add_columns(
   { data_type => "integer", is_nullable => 1 },
   "status",
   { data_type => "varchar", is_nullable => 1, size => 11 },
+  "category",
+  { data_type => "varchar", is_nullable => 1, size => 20 },
 );
 
 =head1 PRIMARY KEY
@@ -84,8 +92,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("url_md5");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-05-14 15:25:20
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ltk49GjU94sHlwY5K2I8AA
+# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-09-30 17:39:49
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:WjacGa4RJqYKrZKOCkyi0w
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

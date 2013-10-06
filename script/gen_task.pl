@@ -14,10 +14,12 @@ my $schema = Crawler::DB::Schema->connect(
 
 my $t = Crawler::Task->new(db_helper => $schema);
 my $interval = 30;
-my $type = 'finder';
 my $website_id = shift;
-my $w = $t->polling_task_by_site($interval,$type,$website_id);
-$t->poll_condvar->recv;
+my $type = shift;
+my $debug = shift;
+$schema->storage->debug(1) if $debug;
+$t->debug($debug);
+$t->polling_task_by_site($interval,$type,$website_id);
 
 
 

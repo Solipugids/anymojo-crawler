@@ -31,7 +31,9 @@ sub get_parser_cached {
         return $parser;
     }
     my $url_pattern = $self->conf->{url_pattern};
-    my ($regex) = grep { $url =~ m{$_} } keys %$url_pattern;
+    my ($regex) = grep { 
+        $url =~ m{$_} 
+        } keys %$url_pattern;
     $self->cache->{parser} = $url_pattern->{$regex};
     return $url_pattern->{$regex};
 }
@@ -39,14 +41,16 @@ sub get_parser_cached {
 sub get_parser_by_urlpattern {
     my ( $self, $url ) = @_;
     my $url_pattern = $self->conf->{url_pattern};
-    my ($regex) = grep { $url =~ m{$_} and $_ } keys %$url_pattern;
-    if ( not $regex ) {
+    my ($entry) = grep { 
+        $url =~ m#$url_pattern->{$_}# 
+    } keys %$url_pattern;
+    if ( not $entry) {
         if( $self->log->is_debug){
             warn("check your url_pattern for $url or use default entry");
         }
         return
     }
-    return $url_pattern->{$regex};
+    return $entry;
 }
 
 1;

@@ -18,6 +18,7 @@ use EV;
 use TryCatch;
 use AnyEvent;
 use Encode qw(decode encode);
+use Time::HiRes qw(sleep);
 
 with 'Crawler::Logging';
 
@@ -28,11 +29,7 @@ has is_debug => ( is => 'rw', default  => 0, lazy => 1 );
 has parsed_result => (
     is      => 'rw',
     default => sub {
-        my $parsed_result = {
-            feeder  => [],
-            page    => [],
-            archive => [],
-        };
+        my $parsed_result = {};
     },
     lazy => 1
 );
@@ -99,14 +96,17 @@ sub BUILD {
 
     if ( $site_option{proxy} ) {
         $self->log->debug( "set proxy: " . $site_option{proxy} );
-        $self->user_agent->http_proxy( $site_option{proxy} );
+
+        #$self->user_agent->http_proxy( $site_option{proxy} );
+    }
+    if ( not -d $site_option{ready_path} ) {
+        mkdir $site_option{ready_path};
     }
 
     # plugin : Mojo::UserAgent=>CookieJar
     if ( $site_option{plugin} ) {
+        require Moo::Role;
         for my $plugin ( split( ",", $site_option{plugin} ) ) {
-            my ( $package_name, $plugin ) = split( "=>", $plugin );
-            require Moo::Role;
             Moo::Role->apply_roles_to_object( $self, $plugin );
         }
     }
@@ -117,95 +117,144 @@ sub BUILD {
         require Mojo::UserAgent::CookieJar;
         $self->user_agent->cookie_jar( Mojo::UserAgent::CookieJar->new );
     }
+    $self->user_agent->max_connections(10);
+    $self->user_agent->max_redirects(3);
 }
 
 sub run {
     my ( $self, $task_id ) = @_;
-
+    use Mojo::IOLoop;
     my $parser_option = $self->option->{ $self->site }->{parser};
-
+    my $task_count =
+      $self->schema->resultset('TaskDetail')->search( { id => $task_id } )
+      ->count;
+    my $page_count = int( $task_count / 10 ) + 1;
     my $detail_rs =
-      $self->schema->resultset('TaskDetail')->search( { id => $task_id } );
+      $self->schema->resultset('TaskDetail')
+      ->search( { id => $task_id }, { page => $page_count, rows => 10 }, );
     my $task_rs =
       $self->schema->resultset('Task')->find( { id => $task_id } );
-    my $stat = $self->stat;
+    my $stat  = $self->stat;
+    my $proxy = $self->option->{ $self->site }->{proxy};
 
-    while ( my $row = $detail_rs->next ) {
-        my $url   = $row->url;
-        my $entry = $self->parser->get_parser_by_urlpattern($url);
-        $self->log->debug("get parser: $entry by url: $url");
+    my $count = 0;
+    use Parallel::ForkManager;
+    my $pm = Parallel::ForkManager->new(2);
 
-        my $entry_rs = $self->schema->resultset( ucfirst($entry) )
-          ->find( { url_md5 => md5_hex($url) } );
-        for my $rs ( $task_rs, $entry_rs ) {
-            $rs->status('doing');
-            $rs->update;
-        }
-        if ( not $entry ) {
-            Carp::croak( "not find parse entry by url: " . $url );
-        }
+    for my $page_num ( 1 .. $page_count ) {
+        my $pid = $pm->start and next if not $self->is_debug;
+        do {
+            my $page = $detail_rs->page($page_num);
 
-        $self->log->debug("Get parser entry: $entry");
-        $stat->{total}++;
+            #my $loop = Mojo::IOLoop->delay;
+            my @list    = $page->all;
+            my $shuffle = Mojo::Collection->new(@list);
+            my $cv      = AnyEvent->condvar;
+            for my $row ( $shuffle->shuffle->each ) {
 
-        $self->process_download( $url, $entry, $task_rs, $entry_rs );
+                #my $pid = $pm->start and next if not $self->is_debug;
+                #$loop->begin if not $self->is_debug;
+                my $url = $row->url;
+                $self->user_agent->http_proxy( $self->get_proxy ) if $proxy;
+
+                #$self->user_agent->http_proxy( $self->get_proxy ) if $proxy;
+                my $entry = $self->parser->get_parser_by_urlpattern($url);
+                $self->log->debug("get parser: $entry by url: $url");
+                my $entry_rs = $self->schema->resultset(
+                    join( '', map { ucfirst $_ } split( '_', $entry ) ) )
+                  ->find( { url_md5 => md5_hex($url) } );
+                if (    defined $entry_rs
+                    and $entry_rs->status =~ m/success|download|done/
+                    and not $self->is_debug )
+                {
+                    $self->log->debug(
+                        "this url : $url => is processed,next....");
+                    next;
+                }
+                if ( not $entry ) {
+                    Carp::croak( "not find parse entry by url: " . $url );
+                }
+                eval {
+                    $self->process_download( $url, $entry, $task_rs, $entry_rs,
+                        $cv );
+                };
+            }
+            $cv->recv;
+            $pm->finish if not $self->is_debug;
+
+        #$loop->wait if ( not Mojo::IOLoop->is_running and not $self->is_debug);
+        #undef $loop;
+        };
+
+        #$self->crawl_cv->recv;
+        $pm->finish if not $self->is_debug;
     }
+    #
+    $pm->wait_all_children if not $self->is_debug;
 
-    $self->crawl_cv->recv;
-    $self->save_data( $self->parsed_result );
+    #$self->save_data( $self->parsed_result );
     $self->log->info( "parse result: " . Dump($stat) );
 
     return $stat;
 }
 
 sub process_download {
-    my ( $self, $url, $entry, $task_rs, $entry_rs ) = @_;
+    my ( $self, $url, $entry, $task_rs, $entry_rs, $loop ) = @_;
 
     my $site_id       = $task_rs->site_id;
-    my $parsed_result = $self->parsed_result;
+    my $parsed_result = {};
     my $parser_option = $self->parser_option;
-    my $stat          = $self->stat;
 
-    $self->crawl_cv->begin;
+    # if this parsed result not exists ,defined a empty arrayref
+    $parsed_result->{$entry} = [];
+    my $is_success = 1;
 
-    $self->user_agent->get(
-        $url => sub {
-            my ( $ua, $tx ) = @_;
-            if ( $tx->success ) {
-                $self->log->debug("Download url: $url return success");
-                my $html = $tx->res->body;
-                my $dom  = Mojo::DOM->new($html)->charset( $self->charset );
-                eval {
-                    my $ret = $self->parser->parse(
-                        $entry, $dom,
-                        $parsed_result,
-                        {
-                            html       => $html,
-                            base_url   => $parser_option->{base_url},
-                            website_id => $site_id,
-                            url        => $url,
-                            ua         => $ua,
-                        }
-                    );
-                    if ( not $ret ) {
-                        die "parse url => $url failed\n";
-                    }
-                };
-                if ($@) { $stat->{status} = 'fail' }
+    #$self->user_agent->http_proxy($self->get_proxy);
+    #my $tx = $self->user_agent->get($url => $cb);
+    my $attr;
+    my $cb = sub {
+        my ( $ua, $tx ) = @_;
+        if ( $tx->success ) {
+            $self->log->debug("Download url: $url return success");
+            my $html = $tx->res->body;
+            $self->log->debug( "set charset" . $self->parser->conf->{charset} );
+            if ( my $decode = $self->parser->conf->{charset} ) {
+                $html = decode( $decode, $html );
             }
-            else {
-                $self->log->error("Oops!!!,download url => $url failed");
-                $stat->{status} = 'fail';
+            my $dom = Mojo::DOM->new($html);
+            $attr = {
+                html       => $html,
+                base_url   => $parser_option->{base_url},
+                website_id => $site_id,
+                url        => $url,
+                ua         => $ua,
+                entry      => $entry_rs,
+                is_success => 1,
+            };
+            eval {
+                $self->parser->parse( $entry, $dom, $parsed_result, $attr );
+            };
+            if ($@) {
+                $attr->{is_success} = 0;
+                $self->log->error("parsed err!!! => $@");
             }
-            if ( $entry =~ m/home|feeder/ ) {
-                $entry_rs->status('undo');
-                $entry_rs->update;
-            }
-
-            $self->flush_entry_status( $url, $task_rs, $task_rs );
-            $self->crawl_cv->end;
         }
-    );
+        else {
+            $self->log->error("Oops!!!,download url => $url failed");
+            $is_success = 0;
+        }
+        if ( not $attr->{is_success} ) {
+            $self->log->error(
+                "Oops!!!,parser html failed in url => " . $attr->{url} );
+        }
+        $self->log->debug( Dump $parsed_result) if $self->is_debug;
+        $self->save_data($parsed_result) if not $self->is_debug;
+        $attr->{is_success}
+          ? $entry_rs->status('success')
+          : $entry_rs->status('fail');
+        $entry_rs->update;
+    };
+    my $tx = $self->user_agent->get( $url => $cb );
 }
 
 sub flush_entry_status {
@@ -248,7 +297,9 @@ sub save_data {
         if ( scalar( @{ $parsed_result->{$t} } ) > 0 ) {
             for my $data ( @{ $parsed_result->{$t} } ) {
                 $self->log->debug( "Insert new data :" . Dump($data) );
-                $self->schema->resultset( ucfirst($t) )->find_or_create($data);
+                $self->schema->resultset(
+                    join( '', map { ucfirst $_ } split( '_', $t ) ) )
+                  ->find_or_create($data);
             }
         }
     }
@@ -348,6 +399,13 @@ sub register_parser {
         $self->log->debug("add  $entry parser to crawler");
         $self->parser->reg_cb( $entry => $callback );
     }
+}
+
+sub get_proxy {
+    my @proxy_list = qw(
+      http://sri:secret@95.78.123.159:3128
+    );
+    return $proxy_list[ int( rand @proxy_list ) ];
 }
 
 1;

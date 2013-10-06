@@ -15,9 +15,10 @@ has db_helper => ( is => 'ro', required => 1 );
 has limit => ( is => 'rw', default => 20, lazy => 1 );
 has poll_condvar =>
   ( is => 'rw', default => sub { AnyEvent->condvar }, lazy => 1 );
+has 'debug' => ( is => 'rw', default => 0 );
 
 sub gen_task_with_entry {
-    my ( $self, $entry, $website_id ) = @_;
+    my ( $self, $entry, $website_id,$status ) = @_;
 
     my $cond = {};
     if ($website_id) {
@@ -25,16 +26,20 @@ sub gen_task_with_entry {
     }
     $cond->{status} = 'undo';
     my $attr = {};
-    $attr->{rows} = $self->limit;
+
+    #$attr->{rows} = $self->limit;
     my $rs =
-      $self->db_helper->resultset( ucfirst($entry) )->search( $cond, $attr );
+      $self->db_helper->resultset(
+        join( '', map { ucfirst $_ } split( '_', $entry ) ) )
+      ->search( $cond, $attr );
 
     my $count = 0;
     my $task_id;
 
     # gen task in task and task_detail table
     while ( my $row = $rs->next ) {
-        if ( not $count % $self->limit ) {
+        if ( $count == 0 )
+        {    #$count < $self->limit || not $count % $self->limit){
             $self->log->debug(
                 "Every " . $self->limit . " row,batch a task queue" );
             my $t = $self->db_helper->resultset('Task')->create(
@@ -56,8 +61,10 @@ sub gen_task_with_entry {
                 url_md5 => $row->url_md5,
             }
         );
+        exit if $self->debug;
         $self->log->debug("Insert a new detail row ,id => $task_id");
     }
+    exit;
 }
 
 sub gen_task_with_feeder {
@@ -142,28 +149,37 @@ sub polling_task_by_site {
     $self->log->debug( "Begin generate new task for crawler,"
           . "website_id: $website_id,interval: $interval,"
           . "type: $type" );
+    foreach my $entry ($type) {
+        $self->gen_task_with_entry( $entry, $website_id );
+    }
+
+=pod
     my $w = AnyEvent->timer(
         after    => 2,
         interval => $interval,
         cb       => sub {
-            foreach my $entry (qw(home feeder page archive)) {
+            #foreach my $entry (qw(home feeder page archive)) {
+            #foreach my $entry (qw(home artist page dbox download song)) {
+            foreach my $entry ($type ){
                 $self->gen_task_with_entry( $entry, $website_id );
             }
         },
     );
     return $w;
+=cut
+
 }
 
-sub find_task_with_sitelist{
-    my ( $self,@site_list) = @_;
+sub find_task_with_sitelist {
+    my ( $self, @site_list ) = @_;
 
-    my $sub_rs= $self->db_helper->resultset('Website')->search(
-        { name => \@site_list });
+    my $sub_rs =
+      $self->db_helper->resultset('Website')->search( { name => \@site_list } );
 
     my $rs = $self->db_helper->resultset('Task')->search(
-        { 
-            status => ['undo','fail'],
-            site_id=> {
+        {
+            status  => [ 'undo', 'fail' ],
+            site_id => {
                 '-in' => $sub_rs->get_column('id')->as_query
             },
         }

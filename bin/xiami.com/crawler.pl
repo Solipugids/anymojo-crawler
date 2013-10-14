@@ -3,7 +3,10 @@ use Getopt::Long;
 use File::Spec;
 use Crawler;
 use YAML qw(Dump);
+use Mojo::UserAgent;
 use Digest::MD5 qw(md5_hex);
+use Mojo::DOM;
+use utf8;
 
 my $usage = <<EOF;
 $0 -task_id xx -conf xxx.yaml -debug 1 -site xxx
@@ -32,11 +35,12 @@ unless ($task_id) {
 
 my $c = Crawler->new(
     conf => $config,
-    site => $site ,
+    site => $site,
 );
 
 use Mojo::JSON;
 my $json = Mojo::JSON->new;
+my $lua  = Mojo::UserAgent->new;
 
 $c->schema->storage->debug(1) if $debug;
 $c->is_debug(1) if $debug;
@@ -211,8 +215,8 @@ $c->register_parser(
     album_page => sub {
         my ( $parser, $dom, $parsed_result, $attr ) = @_;
         my $entry = $attr->{entry};
-        if( $attr->{url} =~ m{page/} ){
-            $attr->{is_success} =1;
+        if ( $attr->{url} =~ m{page/} ) {
+            $attr->{is_success} = 1;
             return;
         }
 
@@ -273,71 +277,103 @@ $c->register_parser(
         my $entry     = $attr->{entry};
         my ($id)      = $attr->{url} =~ m{album.*?(\d+)$}six;
         my $published = 1;
+        my $language;
+        my $publish_date;
+        my $company;
+        my $album_type;
 
-        if ( $attr->{html} =~ m{.status.:.ok.}six ) {
-            $attr->{is_success} = 1;
-            my $hashref = $json->decode( $attr->{html} );
-            if ( my $node = $hashref->{album}{songs} ) {
-#{"song_id":"2","album_id":"1","name":"\u61c2\u4e8b","style":null,"track":"2","artist_name":"Alex","artist_id":"1","lyric":"http:\/\/img.xiami.com\/lyric\/upload\/2\/2_1326893889.lrc","inkui_url":"\/1\/1\/2.mp3","songwriters":"","composer":"","threads_count":"0","posts_count":"0","listen_file":"\/aliyunos\/1\/1\/1\/2_212824_l.mp3","lyric_url":"3","has_resource":"0","cd_serial":"1","sub_title":"","complete":null,"singers":"Alex","arrangement":"","default_resource_id":"212824","lyric_file":null,"title_url":"dongshi","length":"171","recommends":"21","title":"\u6211 \u90a3\u4e00\u573a\u604b\u7231","album_logo":"http:\/\/img.xiami.com\/images\/album\/img1\/1\/11326895258_2.jpg","location":"http:\/\/m1.file.xiami.com\/1\/1\/1\/2_212824_l.mp3","low_size":"6852440","file_size":null,"low_hash":"199152db2914262571ac0cbea92f5a90","whole_hash":"199152db2914262571ac0cbea92f5a90","content_hash":"199152db2914262571ac0cbea92f5a90","content_size":"6852440","category":"\u534e\u8bed","lock_lrc":"1","year_play":"9798","grade":"-1"#}
-                for my $song_id( keys %$node ){
-                    #http://www.xiami.com/song
-                    my $link = "http://www.xiami.com/song/$song_id";
-                push @{ $parsed_result->{xiage} },
-                  {
-                    url        => $link,
-                    url_md5    => md5_hex($link),
-                    website_id => $attr->{website_id},
-                    publisher  => 'no',
-                    type       => $node->{$song_id}{category},
-                    status     => 'undo',
-                    album      => $entry->name,
-                    hot_num    => $node->{$song_id}{year_play},
-                    name       => $node->{$song_id}{name},
-                    album_id   => $entry->url_md5,
-                    author     => $node->{$song_id}{artist_name},
-                    size => $node->{$song_id}{content_size}||0,
-                  };
-                }
-            }
-            return;
-        }
+        my $album_url = "http://www.xiami.com/album/$id";
 
         eval {
-            my $trs = $dom->at('#track')->find('tr');
-            if ( not $trs->size ) {
-                $published = 0;
-            }
-            for my $e ( $trs->each ) {
-                next unless $e;
-                if ( not( my $c = $dom->at('a.song_download') ) ) {
-                    $published = 0;
-                    next;
+            eval{
+            if ( my $c =
+                $lua->get($album_url)->res->dom->charset('UTF-8')
+                ->at('#album_info > table')->find('tr') )
+            {
+                if ( $c->size > 0 ) {
+                    for my $e ( $c->each ) {
+                        next if not $e;
+                        if ( $e->all_text =~
+                            m/\x{8BED}\x{79CD}\x{FF1A}\s*(.+)\s*/six )
+                        {
+                            $language = $1;
+                        }
+                        if ( $e->all_text =~
+m/\x{53D1}\x{884C}\x{65F6}\x{95F4}\x{FF1A}\s*(\d+).(\d+).(\d+)/six
+                          )
+                        {
+                            $publish_date = join( '-', $1, $2, $3 );
+                        }
+                        if ( $e->all_text =~
+m/\x{5531}\x{7247}\x{516C}\x{53F8}\x{FF1A}\s*(.+)\s*/six
+                          )
+                        {
+                            $company = $1;
+                        }
+                        if ( $e->all_text =~ m/专辑类别：\s*(.+)\s*/six ) {
+                            $album_type = $1;
+                        }
+                    }
+               }
+            }};
+
+            if ( $attr->{html} =~ m{.status.:.ok.}six ) {
+                $attr->{is_success} = 1;
+                my $hashref = $json->decode( $attr->{html} );
+                if ( my $node = $hashref->{album}{songs} ) {
+                    if ( ref $node eq 'HASH' ) {
+                        my $desc;
+                        if( $hashref->{album}{description} ){
+                         $desc = Mojo::DOM->new->xml(1)->parse($hashref->{album}{description})->all_text;
+                        $desc =~ s{<br />}{\n}g;
+                        $desc =~ s{<.+?>}{}g;
+                         }
+                        for my $song_id ( keys %$node ) {
+
+                            #http://www.xiami.com/song
+                            my $link = "http://www.xiami.com/song/$song_id";
+                            $hashref->{publish_date} = $publish_date;
+                            $hashref->{company}      = $company;
+                            $hashref->{language}     = $language;
+                            $hashref->{style}        = $album_type;
+                            push @{ $parsed_result->{xiage} }, {
+                                url        => $link,
+                                url_md5    => md5_hex($link),
+                                website_id => $attr->{website_id},
+                                publisher  => 'no',
+                                type       => $node->{$song_id}{category},
+                                status     => 'update',
+                                album      => $entry->name,
+                                hot_num    => $node->{$song_id}{year_play},
+                                name       => $node->{$song_id}{name},
+                                album_id   => $entry->url_md5,
+                                author     => $node->{$song_id}{artist_name},
+                                size => $node->{$song_id}{content_size} || 0,
+
+                                # add for buyer
+                                company     => $hashref->{company},
+                                composer    => $node->{$song_id}{composer},
+                                songwriters => $node->{$song_id}{songwriters},
+                                style       => $node->{$song_id}{style}
+                                  || $hashref->{style},
+                                track        => $node->{$song_id}{track},
+                                description  => $desc,
+                                publish_date => $hashref->{publish_date},
+                                lyric        => $node->{$song_id}->{lyric},
+                                album_logo   => $node->{$song_id}->{album_logo},
+                                title        => $node->{$song_id}->{title},
+                                language     => $hashref->{language},
+                                location     => $node->{$song_id}{location},
+                            };
+                        }
+                    }
                 }
-                my $name = $e->at('td.song_name > a')->text;
-                my $link = $base_url . $e->at('td.song_name > a')->{href};
-                $link =~ s{\?spm=.*}{}sig;
-                my $hot_num = $e->at('td.song_hot')->text;
-                my $album   = $entry->name;
-                chomp($album);
-                push @{ $parsed_result->{xiage} },
-                  {
-                    url        => $link,
-                    url_md5    => md5_hex($link),
-                    website_id => $attr->{website_id},
-                    publisher  => $entry->company,
-                    type       => $entry->category,
-                    status     => 'undo',
-                    album      => $album,
-                    hot_num    => $hot_num,
-                    name       => $name,
-                    album_id   => $entry->url_md5,
-                    author     => $entry->author,
-                  };
             }
         };
-        $attr->{is_success} = 0 if $@;
-        $attr->{is_success} = 0
-          if not exists $parsed_result->{xiage} and $published;
+        if( $@ ) {
+            $c->log->error("parsing error: $@");
+            $attr->{is_success} = 0;
+        }
     },
     xiage => sub {
         my ( $parser, $dom, $parsed_result, $attr ) = @_;
@@ -345,58 +381,71 @@ $c->register_parser(
         eval {
             my $json_hashref = $json->decode( delete $attr->{html} );
             die 'get undef json' if not ref $json_hashref;
-            my $hq_location =
-              $c->track_hq_location( $json_hashref->{song_id} );
-            die 'get hq location failed' if not $hq_location;                
+            my $hq_location = $c->track_hq_location( $json_hashref->{song_id} );
+            die 'get hq location failed' if not $hq_location;
             my $download_info = {
-                album => $entry->album,
-                song_id => $json_hashref->{song_id},
+                album     => $entry->album,
+                song_id   => $json_hashref->{song_id},
                 song_name => $entry->name,
-                category => $entry->type,
-                size => $json_hashref->{content_size},
-                artist => $json_hashref->{singers},
-                resource => {
+                category  => $entry->type,
+                size      => $json_hashref->{content_size},
+                artist    => $json_hashref->{singers},
+                resource  => {
                     lrc => {
-                        name => $entry->name.".lrc",
+                        name     => $entry->name . ".lrc",
                         location => $json_hashref->{lyric},
                     },
-                    mp3 => { 
+                    mp3 => {
                         location => $hq_location || $json_hashref->{location},
                         size => $json_hashref->{content_size},
-                        name => join("_",$entry->name,$json_hashref->{song_id}).".mp3",
+                        name =>
+                          join( "_", $entry->name, $json_hashref->{song_id} )
+                          . ".mp3",
                     },
                     logo => {
                         location => $json_hashref->{album_logo},
-                        name => join("_",$entry->name,$json_hashref->{song_id}).".jpg",
+                        name =>
+                          join( "_", $entry->name, $json_hashref->{song_id} )
+                          . ".jpg",
                     },
                 }
             };
-            my $ok = $c->multi_download($c->spec_mp3_download_path($download_info));
+            my $ok =
+              $c->multi_download( $c->spec_mp3_download_path($download_info) );
             die "multi_download failed" unless $ok;
 
-            my $dl_path = File::Spec->catdir( $c->option->{$site}->{music_path},$entry->type,$json_hashref->{singers},
-                $entry->album,$entry->name);
-            my $mp3_file = File::Spec->catfile($dl_path,$download_info->{resource}{mp3}{name});
-            my $logo = File::Spec->catfile($dl_path,$download_info->{resource}{logo}{name});
-            eval{
-                $c->modify_id3_info($mp3_file,{
-                    artist => $json_hashref->{singers},
-                    album => $entry->album,
-                    title => $entry->{singers},
-                    album_logo => $logo,
-                }
+            my $dl_path = File::Spec->catdir(
+                $c->option->{$site}->{music_path},
+                $entry->type, $json_hashref->{singers},
+                $entry->album, $entry->name
+            );
+            my $mp3_file = File::Spec->catfile( $dl_path,
+                $download_info->{resource}{mp3}{name} );
+            my $logo = File::Spec->catfile( $dl_path,
+                $download_info->{resource}{logo}{name} );
+            eval {
+                $c->modify_id3_info(
+                    $mp3_file,
+                    {
+                        artist     => $json_hashref->{singers},
+                        album      => $entry->album,
+                        title      => $entry->{singers},
+                        album_logo => $logo,
+                    }
                 );
                 $c->log->debug("make a mp3 tag success");
             };
             die if $@;
+
 =pod
     album      => '无与伦比的美丽',
     artist     => '苏打绿',
     title      => '无与伦比的美丽',
     album_logo => $image,
 =cut
+
         };
-        if( $@){
+        if ($@) {
             $attr->{is_success} = 0;
             $c->log->debug("this is a error : $@");
         }

@@ -1,0 +1,8 @@
+--2013-10-06 18:39:48--  http://m3.file.xiami.com/h/hG3PTIhM4mtuiqGQRI83SiUc6eXUHzSPyY1pkL4osR0mIIcMZZz6kpOWQQpX2yOQr14WENKd2jpKFuhaRIW%2BlOmI
+Resolving m3.file.xiami.com... 42.156.140.9
+Connecting to m3.file.xiami.com|42.156.140.9|:80... connected.
+HTTP request sent, awaiting response... 302 Found
+Location: http://m1.file.xiami.com/956/54956/301731/3337694_1714967_l.mp3 [following]
+--2013-10-06 18:39:48--  http://m1.file.xiami.com/956/54956/301731/3337694_1714967_l.mp3
+Resolving m1.file.xiami.com... failed: nodename nor servname provided, or not known.
+wget: unable to resolve host address ‘m1.file.xiami.com’

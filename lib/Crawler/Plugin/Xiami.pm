@@ -22,7 +22,7 @@ has _ua => ( is => 'rw', default => sub { Mojo::UserAgent->new }, lazy => 1 );
 has vip_validate => ( is => 'ro', default => '夢之畫君', lazy => 1 );
 has gethqsong => (
     is      => 'ro',
-    default => 'http://www.xiami.com/song/gethqsong/sid/#sid',
+    default => 'http://duoluohua.com/myapp/api/xiami/getsong/?action=getsong&songid=#sid',
     lazy    => 1
 );
 has json => ( is => 'rw', default => sub { Mojo::JSON->new }, lazy => 1 );
@@ -48,6 +48,15 @@ around process_download => sub {
         $url = 'http://www.xiami.com/app/iphone/artist?id=' . $id;
         $self->$origin( $url, $entry, $task_rs, $entry_rs, $cv );
     }
+    # http://www.xiami.com/app/iphone/album?id=486126
+    # http://xiami.com/album/171456
+    if ( $url =~ m{xiami.com/album/(\d+)}six){
+        my $id = $1;
+        $url = 'http://www.xiami.com/app/iphone/album?id=' . $id;
+        #$self->$origin( $url, $entry, $task_rs, $entry_rs, $cv );
+        $self->$origin( $url, $entry, $task_rs, $entry_rs, $cv );
+    }
+    #$self->$origin( $url, $entry, $task_rs, $entry_rs, $cv );
 
     #http://xiami.com/song/1769908304
     if ( $url =~ m{/song/(\d+)$} ) {
@@ -55,37 +64,36 @@ around process_download => sub {
             my $song_id = $1;
             $url = 'http://www.xiami.com/app/iphone/song?id=' . $song_id;
             my $cb = sub {
-                my ( $ua, $tx ) = @_;
+                my $ua = shift;
                 my $hq_location = $self->track_hq_location($song_id);
                 if ( not $hq_location ) {
                     $cv->begin;
                     $cv->end;
                     return;
                 }
-                my $song_info     = $tx->res->json;
                 my $download_info = {
                     album     => $entry_rs->album,
                     song_id   => $song_id,
-                    song_name => $song_info->{name},
+                    song_name => $entry_rs->name,
                     category  => $entry_rs->type,
-                    size      => $song_info->{content_size},
-                    artist    => $song_info->{singers},
+                    size      => $entry_rs->size,
+                    artist    => $entry_rs->author,
                     resource  => {
                         lrc => {
-                            name     => $song_info->{name} . ".lrc",
-                            location => $song_info->{lyric},
+                            name     => $entry_rs->name . ".lrc",
+                            location => $entry_rs->lyric,
                         },
                         mp3 => {
                             location => $hq_location,
-                            size     => $song_info->{content_size},
+                            size     => $entry_rs->size,
                             name     => join( "_",
-                                $song_info->{name}, $song_info->{song_id} )
+                                $entry_rs->name, $song_id)
                               . ".mp3",
                         },
                         logo => {
-                            location => $song_info->{album_logo},
+                            location => $entry_rs->album_logo,
                             name     => join( "_",
-                                $song_info->{name}, $song_info->{song_id} )
+                                $entry_rs->name, $song_id )
                               . ".jpg",
                         },
                     }
@@ -93,76 +101,67 @@ around process_download => sub {
                 my $file_hash = $self->spec_mp3_download_path($download_info);
                 my $dl_path   = File::Spec->catdir(
                     $self->option->{ $self->site }->{music_path},
-                    $entry_rs->type,  $song_info->{singers},
-                    $entry_rs->album, $song_info->{name}
+                    $entry_rs->type,  $entry_rs->author,
+                    $entry_rs->album, $entry_rs->name,
                 );
                 my $stat_hashref;
                 my $album_logo = File::Spec->catfile( $dl_path,
                     $download_info->{resource}{logo}{name} );
                 my $mp3_file = File::Spec->catfile( $dl_path,
                     $download_info->{resource}{mp3}{name} );
+                my $lrc_file= File::Spec->catfile( $dl_path,
+                    $download_info->{resource}{lrc}{name} );
 
                 my $cb = sub {
                     if ( -e $mp3_file ) {
-                        if ( not $song_info->{album_logo} ) {
-                            $self->modify_id3_info(
-                                $mp3_file,
-                                {
-                                    artist => $song_info->{singers},
-                                    title  => $song_info->{name},
-                                    album  => $entry_rs->album,
-                                }
+                        if ( not $entry_rs->album_logo and not $entry_rs->lyric) {
+                            my $rc=  $self->modify_id3_info(
+                                $mp3_file,$entry_rs
                             );
                             $self->log->debug(
-                                "make a ID3 tag for " . $song_info->{name} );
-                            $entry_rs->status('success');
+                                "make a ID3 tag for " . $entry_rs->name );
+                            $entry_rs->status('success') if $rc;
                             $entry_rs->update;
                         }
-                        else {
-                            if ( -e $album_logo ) {
-                                $self->modify_id3_info(
-                                    $mp3_file,
-                                    {
-                                        artist     => $song_info->{singers},
-                                        title      => $song_info->{name},
-                                        album      => $entry_rs->album,
-                                        album_logo => $album_logo,
-                                    }
+                        if( not $entry_rs->album_logo and $entry_rs->lyric ){
+                            if( -e $lrc_file ){
+                                my $rc = $self->modify_id3_info(
+                                $mp3_file,$entry_rs,undef,$lrc_file
                                 );
                                 $self->log->debug( "make a ID3 tag for "
-                                      . $song_info->{name} );
+                                      . $entry_rs->name );
+                                $entry_rs->status('success') if $rc;
+                                $entry_rs->update;
                             }
-                            $entry_rs->status('success');
-                            $entry_rs->update;
+                        }
+                        if( $entry_rs->album_logo and not $entry_rs->lyric ){
+                            if ( -e $album_logo ) {
+                                my $rc = $self->modify_id3_info(
+                                $mp3_file,$entry_rs,$album_logo,
+                                );
+                                $self->log->debug( "make a ID3 tag for "
+                                      . $entry_rs->name );
+                                $entry_rs->status('success');
+                                $entry_rs->update;
+                            }
+                        }
+                        if( $entry_rs->album_logo and $entry_rs->lyric ){
+                            if ( -e $album_logo  and -e $lrc_file) {
+                                my $rc = $self->modify_id3_info(
+                                $mp3_file,$entry_rs,$album_logo,$lrc_file
+                                );
+                                $self->log->debug( "make a ID3 tag for "
+                                      . $entry_rs->name );
+                                $entry_rs->status('success');
+                                $entry_rs->update;
+                            }
                         }
                     }
                 };
                 $self->multi_download( $file_hash, $cb, $cv );
-
-=pod
-                my $ready_file =
-                  File::Spec->catfile( $ready_path,
-                    $entry_rs->url_md5 . '.ready' );
-                my $data = spurt(
-                    $self->json->encode(
-                        {
-                            download => $file_hash,
-                            tag      => {
-                                song   => $song_info->{name},
-                                artist => $song_info->{singers},
-                                album  => $entry_rs->album,
-                                id => $song_info->{song_id},
-                            }
-                        }
-                    ),$ready_file
-                );
-                $self->log->debug("touch a downloading file => $ready_file");
-                $entry_rs->status('downloading');
-=cut
-
             };
-            my $tx = $self->user_agent->get($url);
-            $cb->( $self->user_agent, $tx );
+            #my $tx = $self->user_agent->get($url);
+            $cb->( $self->user_agent);
         };
     }
     if ($@) { $self->log->error($@); }
@@ -233,7 +232,7 @@ sub track_hq_location {
     # block request
     eval {
         ( my $referer = $self->referer ) =~ s{#sid}{$song_id}g;
-        my $header = { Referer => $referer };
+        #my $header = { Referer => $referer };
         my $local_ua = Mojo::UserAgent->new;
         $local_ua->cookie_jar( $self->user_agent->cookie_jar );
         $location = _decrypt_location(

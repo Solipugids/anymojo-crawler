@@ -101,6 +101,88 @@ __PACKAGE__->table("xiage");
   data_type: 'integer'
   is_nullable: 1
 
+=head2 company
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 20
+
+=head2 composer
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 20
+
+=head2 songwriters
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 20
+
+=head2 style
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 20
+
+=head2 track
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 20
+
+=head2 description
+
+  data_type: 'text'
+  is_nullable: 1
+
+=head2 lyric
+
+  data_type: 'text'
+  is_nullable: 1
+
+=head2 album_logo
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 255
+
+=head2 rating
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 10
+
+=head2 title
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 20
+
+=head2 publish_date
+
+  data_type: 'datetime'
+  datetime_undef_if_invalid: 1
+  is_nullable: 1
+
+=head2 language
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 20
+
+=head2 location
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 255
+
+=head2 album_type
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 20
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -135,6 +217,38 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 32 },
   "size",
   { data_type => "integer", is_nullable => 1 },
+  "company",
+  { data_type => "varchar", is_nullable => 1, size => 20 },
+  "composer",
+  { data_type => "varchar", is_nullable => 1, size => 20 },
+  "songwriters",
+  { data_type => "varchar", is_nullable => 1, size => 20 },
+  "style",
+  { data_type => "varchar", is_nullable => 1, size => 20 },
+  "track",
+  { data_type => "varchar", is_nullable => 1, size => 20 },
+  "description",
+  { data_type => "text", is_nullable => 1 },
+  "lyric",
+  { data_type => "text", is_nullable => 1 },
+  "album_logo",
+  { data_type => "varchar", is_nullable => 1, size => 255 },
+  "rating",
+  { data_type => "varchar", is_nullable => 1, size => 10 },
+  "title",
+  { data_type => "varchar", is_nullable => 1, size => 20 },
+  "publish_date",
+  {
+    data_type => "datetime",
+    datetime_undef_if_invalid => 1,
+    is_nullable => 1,
+  },
+  "language",
+  { data_type => "varchar", is_nullable => 1, size => 20 },
+  "location",
+  { data_type => "varchar", is_nullable => 1, size => 255 },
+  "album_type",
+  { data_type => "varchar", is_nullable => 1, size => 20 },
 );
 
 =head1 PRIMARY KEY
@@ -150,8 +264,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("url_md5");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-10-03 15:09:55
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:NELaeTUiPczFGSLeEAfwDg
+# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-10-12 23:29:42
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:XyhyjGh603d4gqFNmnJBWA
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

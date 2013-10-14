@@ -3,6 +3,7 @@ package Crawler::Plugin::MP3Tag;
 use Moo::Role;
 
 use MP3::Tag;
+use Mojo::Util 'slurp';
 use Encode qw(decode_utf8 encode_utf8);
 use IO::File;
 use utf8;
@@ -11,7 +12,6 @@ use constant COVERART_LOCATOR => "coverart";
 use constant PICTURE_TYPE     => "Cover (front)";
 use constant PICTURE_COMMENT  => "Cover Image";
 use constant APIC             => "APIC";
-
 
 =pod
 my $id3_info = {
@@ -23,35 +23,65 @@ my $id3_info = {
 =cut
 
 sub modify_id3_info {
-    my ( $self,$file, $info ) = @_;
+    my ( $self, $file, $info, $image, $lyric ) = @_;
     my $mp3 = MP3::Tag->new($file);
+    eval {
+        $mp3->get_tags();
+        $mp3->{ID3v2}->remove_tag() if exists $mp3->{ID3v2};
+        $mp3->{ID3v1}->remove_tag() if exists $mp3->{ID3v1};
+        my $artist   = $info->author;
+        my $title    = $info->title;
+        my $album    = $info->album;
+        my $name     = $info->name;
+        my $composer = $info->composer;
+        my $company  = $info->company;
+        my $track    = $info->track;
+        my $language = $info->language;
+        my ( $year, $date );
 
-    $mp3->get_tags();
-    $mp3->{ID3v2}->remove_tag() if exists $mp3->{ID3v2};
-    $mp3->{ID3v1}->remove_tag() if exists $mp3->{ID3v1};
-    my $artist = delete $info->{artist};
-    my $title  = delete $info->{title};
-    my $album  = delete $info->{album};
-    my $image  = delete $info->{album_logo};
-    my $id3v2  = $mp3->new_tag('ID3v2');
-    $id3v2->add_frame( 'TALB', $album );
-    $id3v2->add_frame( 'TPE1', $artist );
-    $id3v2->add_frame( 'TIT2', $title );
+        if ( $info->publish_date =~ m/(\d+)-(\d+-\d+)/six ) {
+            $year = $1;
+            $date = $2;
+        }
+        my $description = $info->description;
+        my $style       = $info->style;
+        my $songwriters = $info->songwriters;
+        my $lyric_text;
+        if ($lyric) {
+            $lyric_text = slurp($lyric);
+        }
 
-    attach($mp3,$image) if $image and -e $image;
-    $id3v2->write_tag();
-    my $id3v1 = $mp3->new_tag('ID3v1');
-    $id3v1->song($title);
-    $id3v1->artist($artist);
-    $id3v1->album($album);
-    $id3v1->write_tag();
-    $mp3->close();
+        my $id3v2 = $mp3->new_tag('ID3v2');
+        $id3v2->add_frame( 'USLT', 0, 'eng', '', encode_utf8($lyric_text) )
+          if $lyric_text;
+        $id3v2->add_frame( 'TRCK', $track)                  if defined $track;
+        $id3v2->add_frame( 'TYER', $year)                  if $year;
+        $id3v2->add_frame( 'TDAT', $date)                  if $date;
+        $id3v2->add_frame( 'TALB', $album)                  if $album;
+        $id3v2->add_frame( 'TCON', $style)                  if $style;
+        $id3v2->add_frame( 'TPE1', $artist)                  if $artist;
+        $id3v2->add_frame( 'TPUB', $company )                  if $company;
+        $id3v2->add_frame( 'TCOM', $composer )                 if $composer;
+        $id3v2->add_frame( 'TDAT', $date )                     if $date;
+        $id3v2->add_frame( 'TLAN', encode_utf8($language) )    if $language;
+        $id3v2->add_frame( 'TEXT', encode_utf8($songwriters) ) if $songwriters;
+        $id3v2->add_frame( 'COMM', 0, 'eng', '', encode_utf8($description) )
+          if $description;
+
+        attach( $mp3, $image ) if $image and -e $image;
+        $id3v2->write_tag();
+        $mp3->close();
+    };
+    if ($@) {
+        $self->log->error("make mp3 tag err: $@");
+        return 0;
+    }
 
     return 1;
 }
 
 sub attach {
-    my ( $mp3,$image_file ) = @_;
+    my ( $mp3, $image_file ) = @_;
     $mp3->get_tags();
     if ( !defined $mp3->{ID3v2} ) {
         $mp3->new_tag("ID3v2");

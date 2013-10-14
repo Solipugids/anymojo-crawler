@@ -14,7 +14,7 @@ use Encode qw(encode decode);
 use Mojo::DOM;
 use Crawler::DB::Schema;
 use Crawler::Parser;
-use EV;
+#use EV;
 use TryCatch;
 use AnyEvent;
 use Encode qw(decode encode);
@@ -128,10 +128,10 @@ sub run {
     my $task_count =
       $self->schema->resultset('TaskDetail')->search( { id => $task_id } )
       ->count;
-    my $page_count = int( $task_count / 10 ) + 1;
+    my $page_count = int( $task_count / 20) + 1;
     my $detail_rs =
       $self->schema->resultset('TaskDetail')
-      ->search( { id => $task_id }, { page => $page_count, rows => 10 }, );
+      ->search( { id => $task_id }, { page => $page_count, rows => 20}, );
     my $task_rs =
       $self->schema->resultset('Task')->find( { id => $task_id } );
     my $stat  = $self->stat;
@@ -139,21 +139,23 @@ sub run {
 
     my $count = 0;
     use Parallel::ForkManager;
-    my $pm = Parallel::ForkManager->new(2);
+    my $max_process = $self->option->{$self->site}->{max_process} || 1;
+    $max_process = 0 if $self->is_debug;
+    my $pm = Parallel::ForkManager->new($max_process);
 
     for my $page_num ( 1 .. $page_count ) {
-        my $pid = $pm->start and next if not $self->is_debug;
-        do {
+            my $pid = $pm->start and next if not $self->is_debug;
+            {
             my $page = $detail_rs->page($page_num);
 
-            #my $loop = Mojo::IOLoop->delay;
+            my $loop = AnyEvent->condvar;
             my @list    = $page->all;
             my $shuffle = Mojo::Collection->new(@list);
-            my $cv      = AnyEvent->condvar;
+            #my $cv      = AnyEvent->condvar;
             for my $row ( $shuffle->shuffle->each ) {
 
                 #my $pid = $pm->start and next if not $self->is_debug;
-                #$loop->begin if not $self->is_debug;
+                #$loop->begin ;
                 my $url = $row->url;
                 $self->user_agent->http_proxy( $self->get_proxy ) if $proxy;
 
@@ -163,27 +165,29 @@ sub run {
                 my $entry_rs = $self->schema->resultset(
                     join( '', map { ucfirst $_ } split( '_', $entry ) ) )
                   ->find( { url_md5 => md5_hex($url) } );
-                if (    defined $entry_rs
-                    and $entry_rs->status =~ m/success|download|done/
-                    and not $self->is_debug )
+                if (not $self->is_debug and    defined $entry_rs
+                    and $entry_rs->status =~ m/success/
+                     )
                 {
                     $self->log->debug(
                         "this url : $url => is processed,next....");
-                    next;
+                    $loop->begin;
+                    $loop->end;
+                    #next;
                 }
                 if ( not $entry ) {
                     Carp::croak( "not find parse entry by url: " . $url );
                 }
-                eval {
-                    $self->process_download( $url, $entry, $task_rs, $entry_rs,
-                        $cv );
+                eval{
+                $self->process_download( $url, $entry, $task_rs, $entry_rs,
+                 $loop);
                 };
             }
-            $cv->recv;
+            $loop->recv;
 
-        #$loop->wait if ( not Mojo::IOLoop->is_running and not $self->is_debug);
-        #undef $loop;
-        };
+            #$loop->wait unless Mojo::IOLoop->is_running;
+            undef $loop;
+        }
 
         #$self->crawl_cv->recv;
         $pm->finish if not $self->is_debug;
@@ -241,18 +245,18 @@ sub process_download {
         else {
             $self->log->error("Oops!!!,download url => $url failed");
             $is_success = 0;
+            #$loop->end;
         }
-        if ( not $attr->{is_success} ) {
-            $self->log->error(
-                "Oops!!!,parser html failed in url => " . $attr->{url} );
-        }
+        $self->log->error("parsed error in $url") if not $attr->{is_success};
         $self->log->debug( Dump $parsed_result) if $self->is_debug;
-        $self->save_data($parsed_result) if not $self->is_debug;
+        $self->save_data($parsed_result) ;
         $attr->{is_success}
           ? $entry_rs->status('success')
           : $entry_rs->status('fail');
         $entry_rs->update;
+        #$loop->end;
     };
+    #$loop->begin;
     my $tx = $self->user_agent->get( $url => $cb );
 }
 
@@ -296,9 +300,16 @@ sub save_data {
         if ( scalar( @{ $parsed_result->{$t} } ) > 0 ) {
             for my $data ( @{ $parsed_result->{$t} } ) {
                 $self->log->debug( "Insert new data :" . Dump($data) );
-                $self->schema->resultset(
+                my $rc  = $self->schema->resultset(
                     join( '', map { ucfirst $_ } split( '_', $t ) ) )
                   ->find_or_create($data);
+=pod
+                if ($rc->in_storage) {
+                    $self->log->debug("updated this row");
+                }else{
+                    $rc->insert;
+                }
+=cut
             }
         }
     }

@@ -117,8 +117,8 @@ sub BUILD {
         require Mojo::UserAgent::CookieJar;
         $self->user_agent->cookie_jar( Mojo::UserAgent::CookieJar->new );
     }
-    $self->user_agent->max_connections(10);
-    $self->user_agent->max_redirects(3);
+    $self->user_agent->max_connections(5);
+    $self->user_agent->max_redirects(5);
 }
 
 sub run {

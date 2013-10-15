@@ -19,7 +19,7 @@ use EV;
 use AnyEvent::HTTP;
 
 sub multi_download {
-    my ( $self, $file_hash, $cb,$cv ) = @_;
+    my ( $self, $file_hash, $cb, $cv ) = @_;
 
     my $file_num = scalar( keys %$file_hash );
     my $stat     = {};
@@ -32,6 +32,7 @@ sub multi_download {
         my $dir  = dirname($file_name);
         my $name = basename($file_name);
         $self->anyevent_download( $link, $file_name, $file_size, $cb, $cv );
+
         #$self->download( $link, $file_name, $file_size, $cb, $cv );
     }
 }
@@ -39,31 +40,34 @@ sub multi_download {
 sub anyevent_download {
     my ( $c, $url, $file, $size, $callback, $cv ) = @_;
     $cv->begin;
-
-        unlink $file;
-        my $content_lenth;
-        my $md = AnyEvent::MultiDownload->new(
-            url           => $url,
-            max_retries => 3,
-            max_per_host => 4,
-            seg_size => 1*1024*1024,
-            content_file  => $file,
-            on_seg_finish => sub {
-                my ( $hdr, $seg, $size, $chunk, $cb ) = @_;
-                $cb->(1);
-            },
-            on_finish => sub {
-                my $len = shift;
-                $c->log->debug ("download file => $file OK!!!");
-                $callback->($file);
-                $cv->end;
-            },
-            on_error => sub {
-                my $error = shift;
-                $c->log->debug("Download file => $file error : $error");
-                $cv->end;
-            }
-        )->multi_get_file;
+    if ( -e $file and $size and -s _ == $size ) {
+        $c->log->debug("file => $file is full downloaded ,next .......");
+        $cv->end;
+    }
+    unlink $file;
+    my $content_lenth;
+    my $md = AnyEvent::MultiDownload->new(
+        url           => $url,
+        max_retries   => 3,
+        max_per_host  => 5,
+        seg_size      => 1 * 1024 * 1024,
+        content_file  => $file,
+        on_seg_finish => sub {
+            my ( $hdr, $seg, $size, $chunk, $cb ) = @_;
+            $cb->(1);
+        },
+        on_finish => sub {
+            my $len = shift;
+            $c->log->debug("download $file => $len OK!!!");
+            $callback->($file);
+            $cv->end;
+        },
+        on_error => sub {
+            my $error = shift;
+            $c->log->debug("Download file => $file error : $error");
+            $cv->end;
+        }
+    )->multi_get_file;
 
 }
 
@@ -78,7 +82,7 @@ sub download {
         unlink $file;
         my $tmp_file = tmpnam();
         my $retry    = 0;
-        while ($retry<3) {
+        while ( $retry < 3 ) {
             $retry++;
             eval {
                 local $SIG{ALRM} = sub { die 'timeout download' };
@@ -87,7 +91,7 @@ sub download {
                     "the $retry times download file => $file .....");
 
                 my $cmd = "wget -c $url -O $tmp_file";
-                my $r = system($cmd);
+                my $r   = system($cmd);
                 if ( $r and $retry == 3 ) {
                     die "download $file retry 3 times failed";
                 }
@@ -98,9 +102,11 @@ sub download {
             }
             else {
                 my $real_size = -s $tmp_file;
-                if($size and $real_size != $size ){
-                    $self->log->error("partial download error: $real_size ne $size");
-                }else{
+                if ( $size and $real_size != $size ) {
+                    $self->log->error(
+                        "partial download error: $real_size ne $size");
+                }
+                else {
                     rename $tmp_file => $file;
                     $cb->($file);
                     $self->log->debug("Downloaded file => $file!!!!");

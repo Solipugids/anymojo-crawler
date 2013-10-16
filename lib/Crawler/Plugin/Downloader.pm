@@ -20,6 +20,8 @@ use AnyEvent;
 use EV;
 use AnyEvent::HTTP;
 
+${AnyEvent::HTTP::MAX_RECURSE} = 5;
+
 sub multi_download {
     my ( $self, $file_hash, $cb, $cv ) = @_;
 
@@ -85,8 +87,8 @@ sub anyevent_download {
         my $md = AnyEvent::MultiDownload->new(
             url           => $url,
             max_retries   => 3,
-            max_per_host  => 5,
-            seg_size      => 1 * 1024 * 1024,
+            max_per_host  => 8,
+            seg_size      => 3 * 1024 * 1024,
             content_file  => $file,
             on_seg_finish => sub {
                 my ( $hdr, $seg, $size, $chunk, $cb ) = @_;

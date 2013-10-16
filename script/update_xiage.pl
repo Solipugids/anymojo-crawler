@@ -51,6 +51,7 @@ for my $page_index ( 1 .. $page_count ) {
         $ua->get(
             $url => sub {
                 my ( $ua, $tx ) = @_;
+                my $status = 'patch';
                 if ( $tx->success ) {
                     eval {
                         my $dom = $tx->res->dom->charset('UTF-8');
@@ -108,16 +109,15 @@ for my $page_index ( 1 .. $page_count ) {
                                     $rs->album_type($album_type) if $album_type;
                                     $rs->update;
                                 }else{
-                                    $row->status('redo');
+                                    $status = 'redo';
                                 }
                             }
                         }
                     };
                     if( $@) { 
-                        $row->status('fail');
-                    }else{
-                        $row->status('patch');
+                        $status = 'redo';
                     }
+                    $row->status($status);
                     $row->update;
                 }
             },

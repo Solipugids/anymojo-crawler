@@ -131,6 +131,11 @@ __PACKAGE__->table("xiage");
   is_nullable: 1
   size: 20
 
+=head2 rel_path
+
+  data_type: 'text'
+  is_nullable: 1
+
 =head2 description
 
   data_type: 'text'
@@ -227,6 +232,8 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 20 },
   "track",
   { data_type => "varchar", is_nullable => 1, size => 20 },
+  "rel_path",
+  { data_type => "text", is_nullable => 1 },
   "description",
   { data_type => "text", is_nullable => 1 },
   "lyric",
@@ -264,8 +271,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("url_md5");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-10-12 23:29:42
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:XyhyjGh603d4gqFNmnJBWA
+# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-10-15 19:56:15
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:qm5NbgZsIh/v296iuLIJIw
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

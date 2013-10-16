@@ -4,7 +4,7 @@ use Moo::Role;
 
 use MP3::Tag;
 use Mojo::Util 'slurp';
-use Encode qw(decode_utf8 encode_utf8);
+use Encode qw(decode_utf8 encode_utf8 decode encode);
 use IO::File;
 use utf8;
 
@@ -50,22 +50,60 @@ sub modify_id3_info {
         if ($lyric) {
             $lyric_text = slurp($lyric);
         }
+        $style =~ s/专辑风格.*//g if $style;
+
+        my $decoded_lric;
+        if ($lyric_text) {
+            for (
+                'utf8',        'latin1', 'iso-8859-1',
+                'iso-8859-15', 'cp1252', 'cp1251'
+              )
+            {
+                eval {
+                    $decoded_lric = decode( $_, $lyric_text );
+                    print $decoded_lric;
+                    last;
+                };
+                if ($@) {
+                    $decoded_lric = undef;
+                }
+            }
+        }
+        my $decoded_desc;
+        if ($description) {
+            for (
+                'utf8',        'latin1', 'iso-8859-1',
+                'iso-8859-15', 'cp1252', 'cp1251'
+              )
+            {
+                eval {
+                    $decoded_desc = decode( $_, $description );
+                    print $decoded_desc;
+                    last;
+                };
+                if ($@) {
+                    $decoded_desc = undef;
+                }
+            }
+        }
+        $lyric_text  = $decoded_lric if $decoded_lric;
+        $description = $decoded_desc if $decoded_desc;
 
         my $id3v2 = $mp3->new_tag('ID3v2');
-        $id3v2->add_frame( 'USLT', 0, 'eng', '', encode_utf8($lyric_text) )
+        $id3v2->add_frame( 'USLT', 3, 'eng', '', $lyric_text )
           if $lyric_text;
-        $id3v2->add_frame( 'TRCK', $track)                  if defined $track;
-        $id3v2->add_frame( 'TYER', $year)                  if $year;
-        $id3v2->add_frame( 'TDAT', $date)                  if $date;
-        $id3v2->add_frame( 'TALB', $album)                  if $album;
-        $id3v2->add_frame( 'TCON', $style)                  if $style;
-        $id3v2->add_frame( 'TPE1', $artist)                  if $artist;
-        $id3v2->add_frame( 'TPUB', $company )                  if $company;
-        $id3v2->add_frame( 'TCOM', $composer )                 if $composer;
-        $id3v2->add_frame( 'TDAT', $date )                     if $date;
-        $id3v2->add_frame( 'TLAN', encode_utf8($language) )    if $language;
-        $id3v2->add_frame( 'TEXT', encode_utf8($songwriters) ) if $songwriters;
-        $id3v2->add_frame( 'COMM', 0, 'eng', '', encode_utf8($description) )
+        $id3v2->add_frame( 'TRCK', $track )    if defined $track;
+        $id3v2->add_frame( 'TYER', $year )     if $year;
+        $id3v2->add_frame( 'TDAT', $date )     if $date;
+        $id3v2->add_frame( 'TALB', $album )    if $album;
+        $id3v2->add_frame( 'TCON', $style )    if $style;
+        $id3v2->add_frame( 'TPE1', $artist )   if $artist;
+        $id3v2->add_frame( 'TPUB', $company )  if $company;
+        $id3v2->add_frame( 'TCOM', $composer ) if $composer;
+        $id3v2->add_frame( 'TDAT', $date )     if $date;
+        $id3v2->add_frame( 'TLAN', ($language) ) if $language;
+        $id3v2->add_frame( 'TEXT', $songwriters ) if $songwriters;
+        $id3v2->add_frame( 'COMM', 3, 'eng', 'desc', $description )
           if $description;
 
         attach( $mp3, $image ) if $image and -e $image;

@@ -4,9 +4,11 @@ package Crawler::Plugin::Downloader;
 use Moo::Role;
 
 use File::Temp qw/ :POSIX /;
+use FileHandle;
 use AnyEvent::MultiDownload;
 use List::Util qw(shuffle);
 use Digest::MD5 qw(md5_hex);
+use Encode qw(decode_utf8 encode_utf8);
 use YAML 'Dump';
 use File::Spec;
 use Encode qw(encode_utf8);
@@ -31,7 +33,33 @@ sub multi_download {
         $self->log->debug("begin download file => $link #####");
         my $dir  = dirname($file_name);
         my $name = basename($file_name);
-        $self->anyevent_download( $link, $file_name, $file_size, $cb, $cv );
+        unless ( $file_name =~ m/.mp3$/ ) {
+            $cv->begin;
+            http_get $link=> sub {
+                my ( $body, $hdr ) = @_;
+                eval {
+                    my $tmp_file = File::Spec->catfile( dirname($file_name),
+                        basename($file_name) . time );
+                    my $fh = FileHandle->new(">$tmp_file") or die $@;
+                    binmode($fh);
+                    print $fh $body;
+                    close($fh);
+                    rename $tmp_file => $file_name;
+                };
+                if ($@) {
+                    $self->log->error("download file error !!!!!!!");
+                }
+                else {
+                    $self->log->debug(
+                        "downloa file by single http=> $file_name OK!");
+                }
+                $cb->(1);
+                $cv->end;
+            };
+        }
+        else {
+            $self->anyevent_download( $link, $file_name, $file_size, $cb, $cv );
+        }
 
         #$self->download( $link, $file_name, $file_size, $cb, $cv );
     }
@@ -39,36 +67,46 @@ sub multi_download {
 
 sub anyevent_download {
     my ( $c, $url, $file, $size, $callback, $cv ) = @_;
-    $cv->begin;
-    if ( -e $file and $size and -s _ == $size ) {
+
+    my $exists_size = -s $file;
+    if ( -e $file and $size and $exists_size >= $size ) {
+        $cv->begin;
+
+        #  9242532 => 9278464
         $c->log->debug("file => $file is full downloaded ,next .......");
+        $callback->(1);
         $cv->end;
     }
-    unlink $file;
-    my $content_lenth;
-    my $md = AnyEvent::MultiDownload->new(
-        url           => $url,
-        max_retries   => 3,
-        max_per_host  => 5,
-        seg_size      => 1 * 1024 * 1024,
-        content_file  => $file,
-        on_seg_finish => sub {
-            my ( $hdr, $seg, $size, $chunk, $cb ) = @_;
-            $cb->(1);
-        },
-        on_finish => sub {
-            my $len = shift;
-            $c->log->debug("download $file => $len OK!!!");
-            $callback->($file);
-            $cv->end;
-        },
-        on_error => sub {
-            my $error = shift;
-            $c->log->debug("Download file => $file error : $error");
-            $cv->end;
-        }
-    )->multi_get_file;
+    else {
+        $cv->begin;
 
+        unlink $file;
+        my $content_lenth;
+        my $md = AnyEvent::MultiDownload->new(
+            url           => $url,
+            max_retries   => 3,
+            max_per_host  => 5,
+            seg_size      => 1 * 1024 * 1024,
+            content_file  => $file,
+            on_seg_finish => sub {
+                my ( $hdr, $seg, $size, $chunk, $cb ) = @_;
+                $cb->(1);
+            },
+            on_finish => sub {
+                my $len = shift;
+                $c->log->debug("download $file => $len OK!!!");
+                $callback->($file);
+                $cv->end;
+            },
+            on_error => sub {
+                my $error = shift;
+
+                $c->log->debug(
+                    "Download file => $file error : " . decode_utf8($error) );
+                $cv->end;
+            }
+        )->multi_get_file;
+    }
 }
 
 sub download {

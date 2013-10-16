@@ -1,5 +1,3 @@
--- Create syntax for '(null)'
-
 -- Create syntax for TABLE 'album'
 CREATE TABLE `album` (
   `url_md5` varchar(32) NOT NULL DEFAULT '',
@@ -213,7 +211,7 @@ CREATE TABLE `task` (
   `site_id` int(11) DEFAULT NULL,
   `size` int(20) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=516 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=540 DEFAULT CHARSET=utf8;
 
 -- Create syntax for TABLE 'task_detail'
 CREATE TABLE `task_detail` (
@@ -283,5 +281,21 @@ CREATE TABLE `xiage` (
   `hot_num` int(11) DEFAULT NULL,
   `album_id` varchar(32) DEFAULT NULL,
   `size` int(20) DEFAULT NULL,
+  `company` varchar(20) DEFAULT NULL,
+  `composer` varchar(20) DEFAULT NULL,
+  `songwriters` varchar(20) DEFAULT NULL,
+  `style` varchar(20) DEFAULT NULL,
+  `track` varchar(20) DEFAULT NULL,
+  `rel_path` text,
+  `description` text,
+  `lyric` text,
+  `album_logo` varchar(255) DEFAULT NULL,
+  `rating` varchar(10) DEFAULT NULL,
+  `title` varchar(20) DEFAULT NULL,
+  `publish_date` datetime DEFAULT NULL,
+  `language` varchar(20) DEFAULT NULL,
+  `location` varchar(255) DEFAULT NULL,
+  `album_type` varchar(20) DEFAULT NULL,
   PRIMARY KEY (`url_md5`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+

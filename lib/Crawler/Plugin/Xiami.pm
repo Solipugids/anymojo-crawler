@@ -245,7 +245,6 @@ sub track_hq_location {
         $local_ua->cookie_jar( $self->user_agent->cookie_jar );
         $location = _decrypt_location(
             $local_ua->get($gethqsong)->res->json('/location') );
-        $location ||= 'null url';
         $self->log->debug("get hq_location here => $location");
     };
     if ($@) {
@@ -258,6 +257,7 @@ sub track_hq_location {
 
 sub _decrypt_location {
     my $location = shift;
+    return if not defined $location;
     my $loc_2    = int( substr( $location, 0, 1 ) );
     my $loc_3    = substr( $location, 1 );
     return if not $loc_2;

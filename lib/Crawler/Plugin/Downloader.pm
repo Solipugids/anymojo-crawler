@@ -35,8 +35,14 @@ sub multi_download {
         $self->log->debug("begin download file => $link #####");
         my $dir  = dirname($file_name);
         my $name = basename($file_name);
-        unless ( $file_name =~ m/.mp3$/ ) {
+        if( $link ){
             $cv->begin;
+            my $exists_size = -s $file_name;
+            if ( -e $file_name and $file_size and $exists_size >= $file_size) {
+                $self->log->debug("download file is downloaded full,next next!!!!");
+                $cb->(1);
+                $cv->end;
+            }
             http_get $link=> sub {
                 my ( $body, $hdr ) = @_;
                 eval {
@@ -55,16 +61,18 @@ sub multi_download {
                     $self->log->debug(
                         "downloa file by single http=> $file_name OK!");
                 }
-                $cb->(1);
+                $cb->(1) if $file_name =~ m/mp3$/six;
                 $cv->end;
             };
         }
+=pod
         else {
             $self->anyevent_download( $link, $file_name, $file_size, $cb, $cv );
         }
 
         #$self->download( $link, $file_name, $file_size, $cb, $cv );
-    }
+=cut
+        }            
 }
 
 sub anyevent_download {

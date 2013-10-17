@@ -17,17 +17,18 @@ use POSIX qw(floor);
 use Mojo::JSON;
 use utf8;
 
-has username => ( is => 'ro', default => 'yiming.jin@live.com', lazy => 1 );
+has username => ( is => 'ro', default => 'thomaslyang@qq.com', lazy => 1 );
 has _ua => ( is => 'rw', default => sub { Mojo::UserAgent->new }, lazy => 1 );
 has vip_validate => ( is => 'ro', default => '夢之畫君', lazy => 1 );
 has gethqsong => (
     is => 'ro',
     default =>
-'http://duoluohua.com/myapp/api/xiami/getsong/?action=getsong&songid=#sid',
+#'http://duoluohua.com/myapp/api/xiami/getsong/?action=getsong&songid=#sid',
+'http://www.xiami.com/song/gethqsong?sid=#sid',
     lazy => 1
 );
 has json => ( is => 'rw', default => sub { Mojo::JSON->new }, lazy => 1 );
-has password => ( is => 'ro', default => 'Jin19841002', lazy => 1 );
+has password => ( is => 'ro', default => '123456', lazy => 1 );
 has submit   => ( is => 'ro', default => '登录',      lazy => 1 );
 has referer  => (
     is => 'rw',
@@ -235,14 +236,14 @@ sub track_hq_location {
     ( my $gethqsong = $self->gethqsong ) =~ s{#sid}{$song_id}g;
     ( my $referer   = $self->referer ) =~ s{#sid}{$song_id}g;
     my $header = { Referer => $referer };
-
+    $header->{"User-Agent"} = rand_useragent();
     # block request
     eval {
         ( my $referer = $self->referer ) =~ s{#sid}{$song_id}g;
 
         #my $header = { Referer => $referer };
         my $local_ua = Mojo::UserAgent->new;
-        $local_ua->cookie_jar( $self->user_agent->cookie_jar );
+        $self->rand_cookie($local_ua);
         $location = _decrypt_location(
             $local_ua->get($gethqsong)->res->json('/location') );
         $self->log->debug("get hq_location here => $location");
@@ -324,6 +325,43 @@ sub upload_image {
         return $r->{url};
     }
     undef;
+}
+
+sub rand_useragent{
+    my @agent_list = (
+   "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.1 (KHTML, like Gecko) Chrome/22.0.1207.1 Safari/537.1",
+        "Mozilla/5.0 (X11; CrOS i686 2268.111.0) AppleWebKit/536.11 (KHTML, like Gecko) Chrome/20.0.1132.57 Safari/536.11",\
+        "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/536.6 (KHTML, like Gecko) Chrome/20.0.1092.0 Safari/536.6",\
+        "Mozilla/5.0 (Windows NT 6.2) AppleWebKit/536.6 (KHTML, like Gecko) Chrome/20.0.1090.0 Safari/536.6",\
+        "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.1 (KHTML, like Gecko) Chrome/19.77.34.5 Safari/537.1",\
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/536.5 (KHTML, like Gecko) Chrome/19.0.1084.9 Safari/536.5",\
+        "Mozilla/5.0 (Windows NT 6.0) AppleWebKit/536.5 (KHTML, like Gecko) Chrome/19.0.1084.36 Safari/536.5",\
+        "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/536.3 (KHTML, like Gecko) Chrome/19.0.1063.0 Safari/536.3",\
+        "Mozilla/5.0 (Windows NT 5.1) AppleWebKit/536.3 (KHTML, like Gecko) Chrome/19.0.1063.0 Safari/536.3",\
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_0) AppleWebKit/536.3 (KHTML, like Gecko) Chrome/19.0.1063.0 Safari/536.3",\
+        "Mozilla/5.0 (Windows NT 6.2) AppleWebKit/536.3 (KHTML, like Gecko) Chrome/19.0.1062.0 Safari/536.3",\
+        "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/536.3 (KHTML, like Gecko) Chrome/19.0.1062.0 Safari/536.3",\
+        "Mozilla/5.0 (Windows NT 6.2) AppleWebKit/536.3 (KHTML, like Gecko) Chrome/19.0.1061.1 Safari/536.3",\
+        "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/536.3 (KHTML, like Gecko) Chrome/19.0.1061.1 Safari/536.3",\
+        "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/536.3 (KHTML, like Gecko) Chrome/19.0.1061.1 Safari/536.3",\
+        "Mozilla/5.0 (Windows NT 6.2) AppleWebKit/536.3 (KHTML, like Gecko) Chrome/19.0.1061.0 Safari/536.3",\
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.24 (KHTML, like Gecko) Chrome/19.0.1055.1 Safari/535.24",\
+        "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/535.24 (KHTML, like Gecko) Chrome/19.0.1055.1 Safari/535.24"
+    );
+    return $agent_list[int(rand(@agent_list))];
+}
+
+sub rand_cookie{
+    my ($self,$ua) =@_;
+
+    return unless ref $ua;
+    my $domain = 'mailinator.com';
+    my @list = (1..50);
+    my $rand = sprintf ("%0.03d",$list[int(rand(@list))]);
+    my $rand_cookie = "xm".$rand;
+    my $cookie_path = File::Spec->catfile($ENV{PROJECT_PATH},'bin',$self->site,$rand_cookie);
+    $ua->cookie_jar( retrieve($cookie_path) );
+    $self->log->debug("load rand cookie from $cookie_path");
 }
 
 1;

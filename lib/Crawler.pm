@@ -128,10 +128,10 @@ sub run {
     my $task_count =
       $self->schema->resultset('TaskDetail')->search( { id => $task_id } )
       ->count;
-    my $page_count = int( $task_count / 10) + 1;
+    my $page_count = int( $task_count / 20) + 1;
     my $detail_rs =
       $self->schema->resultset('TaskDetail')
-      ->search( { id => $task_id }, { page => $page_count, rows => 10}, );
+      ->search( { id => $task_id }, { page => $page_count, rows => 20}, );
     my $task_rs =
       $self->schema->resultset('Task')->find( { id => $task_id } );
     my $stat  = $self->stat;

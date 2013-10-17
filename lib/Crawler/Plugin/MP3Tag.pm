@@ -23,7 +23,7 @@ my $id3_info = {
 =cut
 
 sub modify_id3_info {
-    my ( $self, $file, $info, $image, $lyric ) = @_;
+    my ( $self, $file, $info, $image, $lyric) = @_;
     my $mp3 = MP3::Tag->new($file);
     eval {
         $mp3->get_tags();
@@ -90,6 +90,9 @@ sub modify_id3_info {
         $description = $decoded_desc if $decoded_desc;
 
         my $id3v2 = $mp3->new_tag('ID3v2');
+        if( my $bitrate = $mp3->bitrate_kbps ){
+            $info->bitrate("$bitrate");
+        }
         $id3v2->add_frame( 'USLT', 3, 'eng', '', $lyric_text )
           if $lyric_text;
         $id3v2->add_frame( 'TRCK', $track )    if defined $track;

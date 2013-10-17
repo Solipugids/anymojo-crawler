@@ -21,6 +21,7 @@ use EV;
 use AnyEvent::HTTP;
 
 ${AnyEvent::HTTP::MAX_RECURSE} = 5;
+${AnyEvent::HTTP::MAX_PER_HOST} =8;
 
 sub multi_download {
     my ( $self, $file_hash, $cb, $cv ) = @_;

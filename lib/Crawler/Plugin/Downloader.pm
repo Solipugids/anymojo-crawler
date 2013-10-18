@@ -36,14 +36,8 @@ sub multi_download {
         $self->log->debug("begin download file => $link #####");
         my $dir  = dirname($file_name);
         my $name = basename($file_name);
-        if( $link ){
+        if( not $link=~ m/m3.file/ ){
             $cv->begin;
-            my $exists_size = -s $file_name;
-            if ( -e $file_name and $file_size and $exists_size >= $file_size) {
-                $self->log->debug("download file is downloaded full,next next!!!!");
-                $cb->(1);
-                $cv->end;
-            }
             http_get $link=> sub {
                 my ( $body, $hdr ) = @_;
                 eval {
@@ -54,6 +48,7 @@ sub multi_download {
                     print $fh $body;
                     close($fh);
                     rename $tmp_file => $file_name;
+                    $cb->(1);
                 };
                 if ($@) {
                     $self->log->error("download file error !!!!!!!");
@@ -62,9 +57,33 @@ sub multi_download {
                     $self->log->debug(
                         "downloa file by single http=> $file_name OK!");
                 }
-                $cb->(1) if $file_name =~ m/mp3$/six;
                 $cv->end;
             };
+        }else{
+            local $SIG{ALRM} = sub { die "timeout"};
+            my $exists_size = -s $file_name;
+            if ( -e $file_name and $file_size and $exists_size >= $file_size) {
+                $self->log->debug("download file is downloaded full,next next!!!!");
+                $cb->(1);
+                $cv->begin;
+                $cv->end;
+            }
+            eval{
+                alarm 300;
+                my $tmp_file = File::Spec->catfile( dirname($file_name),
+                        basename($file_name) . time );
+                my $rc = system("curl","-l",$link,"-o",$tmp_file);
+                if( $rc == 0 ){
+                    rename $tmp_file,$file_name;
+                    $cb->(1);
+                }
+                alarm 0;
+            };
+            if( $@ ){
+                $self->log->debug("download file error : $@");
+            }
+            $cv->begin;
+            $cv->end;
         }
 =pod
         else {

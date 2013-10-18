@@ -23,7 +23,7 @@ my $id3_info = {
 =cut
 
 sub modify_id3_info {
-    my ( $self, $file, $info, $image, $lyric) = @_;
+    my ( $self, $file, $info, $image, $lyric ) = @_;
     my $mp3 = MP3::Tag->new($file);
     eval {
         $mp3->get_tags();
@@ -47,42 +47,45 @@ sub modify_id3_info {
         my $style       = $info->style;
         my $songwriters = $info->songwriters;
         my $lyric_text;
+        my $decoded_desc;
+        my $decoded_lric;
         if ($lyric) {
             $lyric_text = slurp($lyric);
         }
         $style =~ s/专辑风格.*//g if $style;
 
-        my $decoded_lric;
-        if ($lyric_text) {
-            for (
-                'utf8',        'latin1', 'iso-8859-1',
-                'iso-8859-15', 'cp1252', 'cp1251'
-              )
-            {
-                eval {
-                    $decoded_lric = decode( $_, $lyric_text );
-                    print $decoded_lric;
-                    last;
-                };
-                if ($@) {
-                    $decoded_lric = undef;
+        {
+            local $SIG{__WARN__} = sub{ die "Encode error " };
+            if ($lyric_text) {
+                for (
+                    'utf8',        'latin1', 'iso-8859-1',
+                    'iso-8859-15', 'cp1252', 'cp1251'
+                  )
+                {
+                    eval {
+                        $decoded_lric = decode( $_, $lyric_text );
+                        print $decoded_lric;
+                        last;
+                    };
+                    if ($@) {
+                        $decoded_lric = undef;
+                    }
                 }
             }
-        }
-        my $decoded_desc;
-        if ($description) {
-            for (
-                'utf8',        'latin1', 'iso-8859-1',
-                'iso-8859-15', 'cp1252', 'cp1251'
-              )
-            {
-                eval {
-                    $decoded_desc = decode( $_, $description );
-                    print $decoded_desc;
-                    last;
-                };
-                if ($@) {
-                    $decoded_desc = undef;
+            if ($description) {
+                for (
+                    'utf8',        'latin1', 'iso-8859-1',
+                    'iso-8859-15', 'cp1252', 'cp1251'
+                  )
+                {
+                    eval {
+                        $decoded_desc = decode( $_, $description );
+                        print $decoded_desc;
+                        last;
+                    };
+                    if ($@) {
+                        $decoded_desc = undef;
+                    }
                 }
             }
         }
@@ -90,7 +93,7 @@ sub modify_id3_info {
         $description = $decoded_desc if $decoded_desc;
 
         my $id3v2 = $mp3->new_tag('ID3v2');
-        if( my $bitrate = $mp3->bitrate_kbps ){
+        if ( my $bitrate = $mp3->bitrate_kbps ) {
             $info->bitrate("$bitrate");
         }
         $id3v2->add_frame( 'USLT', 3, 'eng', '', $lyric_text )

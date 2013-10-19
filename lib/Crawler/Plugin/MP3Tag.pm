@@ -49,55 +49,14 @@ sub modify_id3_info {
         my $lyric_text;
         my $decoded_desc;
         my $decoded_lric;
-        if ($lyric) {
-            $lyric_text = slurp($lyric);
-        }
         $style =~ s/专辑风格.*//g if $style;
-
-        {
-            local $SIG{__WARN__} = sub{ die "Encode error " };
-            if ($lyric_text) {
-                for (
-                    'utf8',        'latin1', 'iso-8859-1',
-                    'iso-8859-15', 'cp1252', 'cp1251'
-                  )
-                {
-                    eval {
-                        $decoded_lric = decode( $_, $lyric_text );
-                        print $decoded_lric;
-                        last;
-                    };
-                    if ($@) {
-                        $decoded_lric = undef;
-                    }
-                }
-            }
-            if ($description) {
-                for (
-                    'utf8',        'latin1', 'iso-8859-1',
-                    'iso-8859-15', 'cp1252', 'cp1251'
-                  )
-                {
-                    eval {
-                        $decoded_desc = decode( $_, $description );
-                        print $decoded_desc;
-                        last;
-                    };
-                    if ($@) {
-                        $decoded_desc = undef;
-                    }
-                }
-            }
-        }
-        $lyric_text  = $decoded_lric if $decoded_lric;
-        $description = $decoded_desc if $decoded_desc;
 
         my $id3v2 = $mp3->new_tag('ID3v2');
         if ( my $bitrate = $mp3->bitrate_kbps ) {
             $info->bitrate(int($bitrate));
         }
-        $id3v2->add_frame( 'USLT', 3, 'eng', '', $lyric_text )
-          if $lyric_text;
+        #$id3v2->add_frame( 'USLT', 3, 'eng', '', $lyric_text )
+        #  if $lyric_text;
         $id3v2->add_frame( 'TRCK', $track )    if defined $track;
         $id3v2->add_frame( 'TYER', $year )     if $year;
         $id3v2->add_frame( 'TDAT', $date )     if $date;

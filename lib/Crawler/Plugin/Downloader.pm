@@ -36,14 +36,28 @@ sub multi_download {
         $self->log->debug("begin download file => $link #####");
         my $dir  = dirname($file_name);
         my $name = basename($file_name);
-        if( not $link=~ m/m3.file/ ){
-            $cv->begin;
-            http_get $link=> sub {
+        $cv->begin;
+        $self->user_agent->get( $link => sub {
+                my ($ua,$tx) = @_;
+                if( $tx->success ){
+                    # $tx->res->content->asset->move_to('mojo.tar.gz');
+                    my $rc = $tx->res->content->asset->move_to($file_name);
+                    if( $rc ){
+                        $self->log->debug("download file $file_name => success");
+                        $cb->(1);
+                    }
+                }
+                $cv->end;
+            },
+        );
+=pod
+        if( $link ){
                 my ( $body, $hdr ) = @_;
                 eval {
-                    my $tmp_file = File::Spec->catfile( dirname($file_name),
-                        basename($file_name) . time );
-                    my $fh = FileHandle->new(">$tmp_file") or die $@;
+                    my $tmp_file = decode_utf8 (File::Spec->catfile( dirname($file_name),
+                        basename($file_name) . time ));
+                    $self->log->debug("create the templ file $tmp_file");
+                    my $fh = FileHandle->new(">$tmp_file") || die $@;
                     binmode($fh);
                     print $fh $body;
                     close($fh);
@@ -51,7 +65,7 @@ sub multi_download {
                     $cb->(1);
                 };
                 if ($@) {
-                    $self->log->error("download file error !!!!!!!");
+                    $self->log->error("download file error  $@!!!!!!!");
                 }
                 else {
                     $self->log->debug(
@@ -59,7 +73,8 @@ sub multi_download {
                 }
                 $cv->end;
             };
-        }else{
+        }
+        else{
             local $SIG{ALRM} = sub { die "timeout"};
             my $exists_size = -s $file_name;
             if ( -e $file_name and $file_size and $exists_size >= $file_size) {
@@ -85,7 +100,6 @@ sub multi_download {
             $cv->begin;
             $cv->end;
         }
-=pod
         else {
             $self->anyevent_download( $link, $file_name, $file_size, $cb, $cv );
         }
@@ -204,7 +218,7 @@ sub spec_mp3_download_path {
         $album = 'ep';
     }
     my $dl_path = File::Spec->catdir( $self->option->{$site}->{music_path},
-        $type, $artist, $album, $song_name );
+        $song_id);
     make_path $dl_path
       or die "create file path $dl_path failed"
       if not -d $dl_path;

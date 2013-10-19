@@ -39,7 +39,7 @@ sub modify_id3_info {
         my $language = $info->language;
         my ( $year, $date );
 
-        if ( $info->publish_date =~ m/(\d+)-(\d+-\d+)/six ) {
+        if ($info->publish_date  and $info->publish_date =~ m/(\d+)-(\d+-\d+)/six ) {
             $year = $1;
             $date = $2;
         }
@@ -94,7 +94,7 @@ sub modify_id3_info {
 
         my $id3v2 = $mp3->new_tag('ID3v2');
         if ( my $bitrate = $mp3->bitrate_kbps ) {
-            $info->bitrate("$bitrate");
+            $info->bitrate(int($bitrate));
         }
         $id3v2->add_frame( 'USLT', 3, 'eng', '', $lyric_text )
           if $lyric_text;

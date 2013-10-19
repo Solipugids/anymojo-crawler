@@ -85,37 +85,31 @@ around process_download => sub {
                     artist    => $entry_rs->author,
                     resource  => {
                         lrc => {
-                            name     => $entry_rs->name . ".lrc",
+                            name     => $song_id . ".lrc",
                             location => $entry_rs->lyric,
                         },
                         mp3 => {
                             location => $hq_location,
                             size     => $entry_rs->size,
-                            name     => join( "_", $entry_rs->name, $song_id )
-                              . ".mp3",
+                            name     => $song_id.".mp3",
                         },
                         logo => {
                             location => $entry_rs->album_logo,
-                            name     => join( "_", $entry_rs->name, $song_id )
-                              . ".jpg",
+                            name     => $song_id.".jpg",
                         },
                     }
                 };
+                $self->log->debug("gen resource_info => ".Dump $download_info);
                 my $file_hash = $self->spec_mp3_download_path($download_info);
                 my $dl_path   = File::Spec->catdir(
-                    $self->option->{ $self->site }->{music_path},
-                    $entry_rs->type,  $entry_rs->author,
-                    $entry_rs->album, $entry_rs->name,
+                    $self->option->{ $self->site }->{music_path},$song_id
                 );
                 ( my $rel_path = $dl_path ) =~ s{(.*?)xiami}{xiami}g;
                 $entry_rs->rel_path($rel_path);
                 my $stat_hashref;
-                my $album_logo = File::Spec->catfile( $dl_path,
-                    $download_info->{resource}{logo}{name} );
-                my $mp3_file = File::Spec->catfile( $dl_path,
-                    $download_info->{resource}{mp3}{name} );
-                my $lrc_file = File::Spec->catfile( $dl_path,
-                    $download_info->{resource}{lrc}{name} );
+                my $album_logo = File::Spec->catfile( $dl_path,$song_id.".jpg");
+                my $mp3_file = File::Spec->catfile( $dl_path,$song_id.".mp3");
+                my $lrc_file = File::Spec->catfile( $dl_path,$song_id.".lrc");
 
                 my $cb = sub {
                     if ( -e $mp3_file ) {
@@ -125,7 +119,7 @@ around process_download => sub {
                             my $rc =
                               $self->modify_id3_info( $mp3_file, $entry_rs );
                             $self->log->debug(
-                                "make a ID3 tag for " . $entry_rs->name );
+                                "make a ID3 tag for " . $mp3_file );
                             $entry_rs->status('success') if $rc;
                             $entry_rs->update;
                         }
@@ -135,7 +129,7 @@ around process_download => sub {
                                   $self->modify_id3_info( $mp3_file, $entry_rs,
                                     undef, $lrc_file );
                                 $self->log->debug(
-                                    "make a ID3 tag for " . $entry_rs->name );
+                                    "make a ID3 tag for " . $mp3_file);
                                 $entry_rs->status('success') if $rc;
                                 $entry_rs->update;
                             }
@@ -146,7 +140,7 @@ around process_download => sub {
                                   $self->modify_id3_info( $mp3_file, $entry_rs,
                                     $album_logo, );
                                 $self->log->debug(
-                                    "make a ID3 tag for " . $entry_rs->name );
+                                    "make a ID3 tag for " . $mp3_file);
                                 $entry_rs->status('success');
                                 $entry_rs->update;
                             }
@@ -158,7 +152,7 @@ around process_download => sub {
                                     $album_logo, $lrc_file
                                 );
                                 $self->log->debug(
-                                    "make a ID3 tag for " . $entry_rs->name );
+                                    "make a ID3 tag for " . $mp3_file );
                                 $entry_rs->status('success');
                                 $entry_rs->update;
                             }

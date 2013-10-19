@@ -163,7 +163,7 @@ www.smzdm.com:
 xiami.com:
   base_url: http://xiami.com
   plugin: Crawler::Plugin::Xiami,Crawler::Plugin::Downloader,Crawler::Plugin::MP3Tag
-  music_path: /Users/mooser/Music/xiami
+  music_path: /tmp/xiami
   ready_path: /Users/mooser/Music/mp3tag
   max_process: 4 
   parser:

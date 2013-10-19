@@ -190,9 +190,8 @@ __PACKAGE__->table("xiage");
 
 =head2 bitrate
 
-  data_type: 'varchar'
+  data_type: 'integer'
   is_nullable: 1
-  size: 20
 
 =cut
 
@@ -263,7 +262,7 @@ __PACKAGE__->add_columns(
   "album_type",
   { data_type => "varchar", is_nullable => 1, size => 20 },
   "bitrate",
-  { data_type => "varchar", is_nullable => 1, size => 20 },
+  { data_type => "integer", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -279,8 +278,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("url_md5");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-10-17 13:23:12
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:lrC+BBSL7aoVJhX4nio9MA
+# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-10-19 23:13:38
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:HeXEZqDKu5OMZ8hUcXlSiA
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

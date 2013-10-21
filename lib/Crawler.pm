@@ -214,7 +214,7 @@ sub download_mp3 {
                     my ( $ua, $tx ) = @_;
                     my $content_lenth = $tx->res->headers->content_length;
                     $tx->res->content->asset->move_to($file);
-                    if ( -s $file >= $content_lenth and -s _ >= $entry_rs->size  ){
+                    if ( -s $file >= $content_lenth ){
                         $self->log->debug(
 "downloaded file => $file success with link => $location, size => $content_lenth=>".$entry_rs->size
                         );

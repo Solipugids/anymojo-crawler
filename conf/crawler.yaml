@@ -165,7 +165,7 @@ xiami.com:
   plugin: Crawler::Plugin::Xiami,Crawler::Plugin::Downloader,Crawler::Plugin::MP3Tag
   music_path: /tmp/xiami
   ready_path: /Users/mooser/Music/mp3tag
-  max_process: 4 
+  max_process: 2
   parser:
     charset: UTF-8
     base_url: http://xiami.com

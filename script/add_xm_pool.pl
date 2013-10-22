@@ -4,78 +4,80 @@ use Mojo::UserAgent::CookieJar;
 use Storable;
 use YAML 'Dump';
 
+my $start = shift;
 my $domain = 'mailinator.com';
 my $project_path = $ENV{PROJECT_PATH};
 my @xm_vips = qw(
-xm001
-xm002
-xm003
-xm004
-xm005
-xm006
-xm007
-xm008
-xm009
-xm010
-xm011
-xm012
-xm013
-xm014
-xm015
-xm016
-xm017
-xm018
-xm019
-xm020
-xm021
-xm022
-xm023
-xm024
-xm025
-xm026
-xm027
-xm028
-xm029
-xm030
-xm031
-xm032
-xm033
-xm034
-xm035
-xm036
-xm037
-xm038
-xm039
-xm040
-xm041
-xm042
-xm043
-xm044
-xm045
-xm046
-xm047
-xm048
-xm049
-xm050
+yy001
+yy002
+yy003
+yy004
+yy005
+yy006
+yy007
+yy008
+yy009
+yy010
+yy011
+yy012
+yy013
+yy014
+yy015
+yy016
+yy017
+yy018
+yy019
+yy020
+yy021
+yy022
+yy023
+yy024
+yy025
+yy026
+yy027
+yy028
+yy029
+yy030
+yy031
+yy032
+yy033
+yy034
+yy035
+yy036
+yy037
+yy038
+yy039
+yy040
+yy041
+yy042
+yy043
+yy044
+yy045
+yy046
+yy047
+yy048
+yy049
+yy050
 );
 
-for( 1..50){
-    my $acc = sprintf ("xm%0.03d",$_);
+for(1..50 ){
+    my $acc = sprintf ("yy%0.03d",$_);
     print $acc,"\n";
 }
 
 for( @xm_vips ){
     my $username = $_."@".$domain;
     &login_xiami($username);
+    $start++;
 }
 
 sub login_xiami {
     my ($username,$password) = @_;
     $password ||= '123456';
-    my ($cookie)  = $username =~ m/(.+?)\@/six;
+    #my ($cookie)  = $username =~ m/(.+?)\@/six;
+    my $cookie = sprintf "xm%0.03d",$start;
     my $cookie_path =
       File::Spec->catfile( $ENV{PROJECT_PATH}, 'bin', 'xiami.com', $cookie );
-
     my $ua = Mojo::UserAgent->new;
     $ua->max_redirects(3);
     $ua->cookie_jar( Mojo::UserAgent::CookieJar->new );
@@ -92,13 +94,17 @@ sub login_xiami {
     #default => 'http://www.xiami.com/member/login',
     my $tx = $ua->post( 'http://www.xiami.com/member/login' => $headers => form => $form );
     if ( $tx->res->code == 200 ) {
-        store $ua->cookie_jar, $cookie_path if not -e $cookie_path;
-        print Dump $ua->cookie_jar;
-        print( "login xiami.com success,save cookie => $cookie_path\n");
+        my $dumper = Dump $ua->cookie_jar;
+        #print $dumper;
+        if( not $dumper =~ m/member_auth/s ){
+            print("$username => errorrrrrrrrr!!!!");
+        }else{
+            store $ua->cookie_jar, $cookie_path if not -e $cookie_path;
+        }
     }
     else {
         print(
-            "login Xiami failed,check you login args and network\n");
+            "login Xiami => $username failed,check you login args and network\n");
     }
     
     return 1;

@@ -230,16 +230,21 @@ sub track_hq_location {
     ( my $gethqsong = $self->gethqsong ) =~ s{#sid}{$song_id}g;
     ( my $referer   = $self->referer ) =~ s{#sid}{$song_id}g;
     my $header = { Referer => $referer };
-    $header->{"User-Agent"} = rand_useragent();
+    #$header->{"User-Agent"} = rand_useragent();
     # block request
     eval {
         ( my $referer = $self->referer ) =~ s{#sid}{$song_id}g;
-
         #my $header = { Referer => $referer };
         my $local_ua = Mojo::UserAgent->new;
         $self->rand_cookie($local_ua);
         $location = _decrypt_location(
             $local_ua->get($gethqsong)->res->json('/location') );
+        if( not $location ){
+            $self->rand_cookie($local_ua);
+            $location = _decrypt_location(
+                $local_ua->get($gethqsong)->res->json('/location') );
+        }
+        die "get location failed " if not $location;
         $self->log->debug("get hq_location here => $location");
     };
     if ($@) {
@@ -350,7 +355,7 @@ sub rand_cookie{
 
     return unless ref $ua;
     my $domain = 'mailinator.com';
-    my @list = (1..50);
+    my @list = (1..150);
     my $rand = sprintf ("%0.03d",$list[int(rand(@list))]);
     my $rand_cookie = "xm".$rand;
     my $cookie_path = File::Spec->catfile($ENV{PROJECT_PATH},'bin',$self->site,$rand_cookie);

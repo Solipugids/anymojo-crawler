@@ -6,6 +6,8 @@ use YAML qw(LoadFile Dump);
 use Crawler::Base -strict;
 use MP3::Tag;
 use Crawler::Logging;
+use File::Path qw(make_path);
+use File::Basename qw(dirname basename);
 use Crawler::Entry;
 use Digest::MD5 qw(md5_hex);
 use Mojo::Collection;
@@ -208,6 +210,7 @@ sub download_mp3 {
             $self->log->debug("$song_id => $file is downloaded,next#########");
         }
         if ( my $location = $self->track_hq_location($song_id) ) {
+=pod
             $self->log->debug("Begin download $song_id => $location");
             my $rc = system( "wget", $location, "-O", $file );
             if ( -s $file >= $entry_rs->size ) {
@@ -222,10 +225,13 @@ sub download_mp3 {
                 $entry_rs->update;
             }
 
-=pod
+=cut
             $self->user_agent->get(
                 $location => sub {
                     my ( $ua, $tx ) = @_;
+                    if( not -e $file ){
+                        make_path (dirname($file));
+                    }
                     my $content_lenth = $tx->res->headers->content_length;
                     $tx->res->content->asset->move_to($file);
                     if ( -s $file >= $content_lenth and $content_lenth >= $entry_rs->size){
@@ -241,7 +247,6 @@ sub download_mp3 {
                     }
                 },
             );
-=cut
 
         }
     }

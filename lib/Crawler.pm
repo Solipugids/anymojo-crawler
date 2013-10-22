@@ -130,10 +130,10 @@ sub run {
     my $task_count =
       $self->schema->resultset('TaskDetail')->search( { id => $task_id } )
       ->count;
-    my $page_count = int( $task_count / 5) + 1;
+    my $page_count = int( $task_count / 5 ) + 1;
     my $detail_rs =
       $self->schema->resultset('TaskDetail')
-      ->search( { id => $task_id }, { page => $page_count, rows => 5}, );
+      ->search( { id => $task_id }, { page => $page_count, rows => 5 }, );
     my $task_rs =
       $self->schema->resultset('Task')->find( { id => $task_id } );
     my $stat  = $self->stat;
@@ -151,7 +151,7 @@ sub run {
             my $page = $detail_rs->page($page_num);
 
             #my $loop    = AnyEvent->condvar;
-            my $loop = Mojo::IOLoop->delay;
+            my $loop    = Mojo::IOLoop->delay;
             my @list    = $page->all;
             my $shuffle = Mojo::Collection->new(@list);
 
@@ -201,14 +201,28 @@ sub download_mp3 {
 
     if ( $url =~ m/(\d+)/ ) {
         my $song_id = $1;
-        my $file          = File::Spec->catfile(
-            $self->option->{ $self->site }{music_path},
-                        $song_id, "${song_id}.mp3" );
-        if( -e $file and -s _ >= $entry_rs->size and not $self->is_debug ){
+        my $file =
+          File::Spec->catfile( $self->option->{ $self->site }{music_path},
+            $song_id, "${song_id}.mp3" );
+        if ( -e $file and -s _ >= $entry_rs->size and not $self->is_debug ) {
             $self->log->debug("$song_id => $file is downloaded,next#########");
         }
         if ( my $location = $self->track_hq_location($song_id) ) {
             $self->log->debug("Begin download $song_id => $location");
+            my $rc = system( "wget", $location, "-O", $file );
+            if ( -s $file >= $entry_rs->size ) {
+                $self->log->debug(
+"downloaded file => $file success with link => $location, size => "
+                      . $entry_rs->size );
+                if ( my $bitrate = MP3::Tag->new($file)->bitrate_kbps ) {
+                    $self->log->debug("get bitkps => $bitrate");
+                    $entry_rs->bitrate( int($bitrate) );
+                }
+                $entry_rs->status('success');
+                $entry_rs->update;
+            }
+
+=pod
             $self->user_agent->get(
                 $location => sub {
                     my ( $ua, $tx ) = @_;
@@ -227,6 +241,8 @@ sub download_mp3 {
                     }
                 },
             );
+=cut
+
         }
     }
 }
